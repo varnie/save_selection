@@ -26,12 +26,6 @@ class StatsWindow(Gtk.Window):
         box.set_margin_right(20)
         self.add(box)
 
-        # Title
-        title = Gtk.Label()
-        title.set_markup("<b>Vocabulary Statistics</b>")
-        title.get_style_context().add_class("title")
-        box.pack_start(title, False, False, 0)
-
         # Stats
         stats = self.vocab_service.get_stats()
 
