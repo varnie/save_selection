@@ -14,6 +14,18 @@ from constants import AUTOSTART_DIR, AUTOSTART_FILE, DEFAULT_DATA_DIR, IS_MACOS
 from wotd import CEFR_LEVELS
 
 
+def get_git_sha():
+    """Get current Git commit SHA."""
+    import subprocess
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True
+        ).stdout.strip()
+    except:
+        return "unknown"
+
+
 def _get_autostart_enabled() -> bool:
     """Check if autostart is currently enabled."""
     return os.path.exists(AUTOSTART_FILE)
@@ -61,7 +73,7 @@ class SettingsWindow(Gtk.Window):
         self.vocab_service = vocab_service
         self.on_save = on_save
         self.config_file = config_file
-        self.set_default_size(560, 970)
+        self.set_default_size(600, 1100)
         self.set_position(Gtk.WindowPosition.CENTER)
 
         self.recording_key = None
@@ -81,9 +93,6 @@ class SettingsWindow(Gtk.Window):
         scroll.add(box)
 
         # Review settings
-        section = self._make_section("REVIEW")
-        box.pack_start(section, False, False, 0)
-
         # Interval
         interval_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         interval_box.pack_start(Gtk.Label("Review Interval:"), False, False, 0)
@@ -100,11 +109,13 @@ class SettingsWindow(Gtk.Window):
         current_interval = str(self.vocab_service.get_settings().get("review_interval", "3600"))
         self.interval_combo.set_active_id(current_interval)
         interval_box.pack_end(self.interval_combo, False, False, 0)
-        box.pack_start(interval_box, False, False, 0)
 
-        # Translation settings
-        section = self._make_section("TRANSLATION")
-        box.pack_start(section, False, False, 0)
+        # Wrap REVIEW in frame
+        review_frame = self._make_frame("Review", interval_box)
+        box.pack_start(review_frame, False, False, 0)
+
+        # Translation container for frame
+        translation_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
         # Provider
         provider_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -122,7 +133,7 @@ class SettingsWindow(Gtk.Window):
 
         self.provider_combo.set_active_id(current_provider)
         provider_box.pack_end(self.provider_combo, False, False, 0)
-        box.pack_start(provider_box, False, False, 0)
+        translation_box.pack_start(provider_box, False, False, 0)
 
         # Source language
         src_lang_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -133,7 +144,7 @@ class SettingsWindow(Gtk.Window):
         current_src_lang = self.vocab_service.get_settings().get("source_lang", "en")
         self.src_lang_combo.set_active_id(current_src_lang)
         src_lang_box.pack_end(self.src_lang_combo, False, False, 0)
-        box.pack_start(src_lang_box, False, False, 0)
+        translation_box.pack_start(src_lang_box, False, False, 0)
 
         # Target language
         lang_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -144,7 +155,7 @@ class SettingsWindow(Gtk.Window):
         current_lang = self.vocab_service.get_settings().get("target_lang", "ru")
         self.lang_combo.set_active_id(current_lang)
         lang_box.pack_end(self.lang_combo, False, False, 0)
-        box.pack_start(lang_box, False, False, 0)
+        translation_box.pack_start(lang_box, False, False, 0)
 
         # Test API button
         test_btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -163,11 +174,14 @@ class SettingsWindow(Gtk.Window):
         self.test_status_label.hide()
         test_btn_box.pack_start(self.test_status_label, True, True, 0)
 
-        box.pack_start(test_btn_box, False, False, 0)
+        translation_box.pack_start(test_btn_box, False, False, 0)
 
-        # Keyboard shortcuts
-        section = self._make_section("KEYBOARD SHORTCUTS")
-        box.pack_start(section, False, False, 0)
+        # Wrap translation in frame
+        translation_frame = self._make_frame("Translation", translation_box)
+        box.pack_start(translation_frame, False, False, 0)
+
+        # Keyboard shortcuts container
+        shortcuts_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
         # Info label - platform-specific instructions
         if IS_MACOS:
@@ -177,7 +191,7 @@ class SettingsWindow(Gtk.Window):
         info_label = Gtk.Label(shortcut_info)
         info_label.set_xalign(0)
         info_label.set_line_wrap(True)
-        box.pack_start(info_label, False, False, 0)
+        shortcuts_box.pack_start(info_label, False, False, 0)
 
         # Commands info
         cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vocab_cli.py")
@@ -185,25 +199,28 @@ class SettingsWindow(Gtk.Window):
         cmds_label.set_xalign(0)
         cmds_label.set_line_wrap(True)
         cmds_label.set_selectable(True)
-        box.pack_start(cmds_label, False, False, 0)
+        shortcuts_box.pack_start(cmds_label, False, False, 0)
+
+        # Wrap in frame
+        shortcuts_frame = self._make_frame("Keyboard Shortcuts", shortcuts_box)
+        box.pack_start(shortcuts_frame, False, False, 0)
 
         # Startup settings
-        section = self._make_section("STARTUP")
-        box.pack_start(section, False, False, 0)
-
         self.autostart_check = Gtk.CheckButton(label="Start with system login")
         autostart = _get_autostart_enabled()
         self.autostart_check.set_active(autostart)
-        box.pack_start(self.autostart_check, False, False, 0)
+
+        # Wrap startup in frame
+        startup_frame = self._make_frame("Startup", self.autostart_check)
+        box.pack_start(startup_frame, False, False, 0)
 
         # Data directory
-        section = self._make_section("DATA")
-        box.pack_start(section, False, False, 0)
+        data_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
         hint_label = Gtk.Label(f"Leave empty to use default: {DEFAULT_DATA_DIR}")
         hint_label.set_xalign(0)
         hint_label.set_line_wrap(True)
-        box.pack_start(hint_label, False, False, 0)
+        data_box.pack_start(hint_label, False, False, 0)
 
         # Custom data directory (read from config file)
         dir_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -216,16 +233,19 @@ class SettingsWindow(Gtk.Window):
         self.data_dir_entry = Gtk.Entry()
         self.data_dir_entry.set_text(custom_data_dir)
         dir_box.pack_end(self.data_dir_entry, True, True, 0)
-        box.pack_start(dir_box, False, False, 0)
+        data_box.pack_start(dir_box, False, False, 0)
+
+        # Wrap data in frame
+        data_frame = self._make_frame("Data", data_box)
+        box.pack_start(data_frame, False, False, 0)
 
         # Word of the Day settings
-        section = self._make_section("WORD OF THE DAY")
-        box.pack_start(section, False, False, 0)
-
         self.wotd_check = Gtk.CheckButton(label="Enable Word of the Day")
         wotd_enabled = self.vocab_service.get_setting("wotd_enabled", "false") == "true"
         self.wotd_check.set_active(wotd_enabled)
-        box.pack_start(self.wotd_check, False, False, 0)
+
+        wotd_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        wotd_box.pack_start(self.wotd_check, False, False, 0)
 
         level_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         level_box.pack_start(Gtk.Label("Level:"), False, False, 0)
@@ -236,7 +256,11 @@ class SettingsWindow(Gtk.Window):
         current_level = self.vocab_service.get_setting("wotd_level", "B2")
         self.wotd_level_combo.set_active_id(current_level)
         level_box.pack_end(self.wotd_level_combo, False, False, 0)
-        box.pack_start(level_box, False, False, 0)
+        wotd_box.pack_start(level_box, False, False, 0)
+
+        # Wrap WOTD in frame
+        wotd_frame = self._make_frame("Word of the Day", wotd_box)
+        box.pack_start(wotd_frame, False, False, 0)
 
         # Buttons
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -251,12 +275,30 @@ class SettingsWindow(Gtk.Window):
 
         box.pack_start(btn_box, False, False, 10)
 
+        # Version footer
+        sha = get_git_sha()
+        footer_label = Gtk.Label(f"App version: {sha}")
+        footer_label.set_xalign(0)
+        footer_label.set_margin_top(10)
+        footer_label.set_selectable(True)
+        box.pack_start(footer_label, False, False, 0)
+
     def _make_section(self, title: str) -> Gtk.Label:
         """Make a section header."""
         label = Gtk.Label()
         label.set_markup(f"<b>{title}</b>")
         label.set_xalign(0)
         return label
+
+    def _make_frame(self, title: str, content: Gtk.Widget) -> Gtk.Frame:
+        """Wrap content in a frame with a border."""
+        frame = Gtk.Frame(label=title)
+        frame.set_shadow_type(Gtk.ShadowType.IN)
+        align = Gtk.Alignment.new(0, 0, 1, 1)
+        align.set_padding(10, 10, 10, 10)
+        align.add(content)
+        frame.add(align)
+        return frame
 
     def on_test_api(self, widget):
         """Test translation API."""
