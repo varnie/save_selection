@@ -17,6 +17,7 @@ from windows.stats import StatsWindow
 from windows.settings import SettingsWindow
 from windows.add_word import AddWordDialog
 from windows.word_browser import WordBrowserWindow
+from windows.quiz import QuizSetupWindow
 
 
 def _create_tray():
@@ -81,6 +82,7 @@ class VocabTrayApp:
             "pause": self.on_pause,
             "add_word": self.on_add_word,
             "word_browser": self.on_word_browser,
+            "quiz": self.on_quiz,
             "stats": self.on_show_stats,
             "settings": self.on_settings,
             "quit": self.on_quit,
@@ -203,6 +205,11 @@ class VocabTrayApp:
     def on_settings(self, widget):
         """Show settings window."""
         win = SettingsWindow(self.vocab_service, config_file=self.config_file)
+        win.show_all()
+
+    def on_quiz(self, widget):
+        """Show quiz setup window."""
+        win = QuizSetupWindow(self.vocab_service)
         win.show_all()
 
     def on_word_browser(self, widget):

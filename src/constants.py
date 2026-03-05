@@ -44,6 +44,7 @@ MENU_ITEMS = [
     None,
     ("Add word", "add_word"),
     ("Word Browser", "word_browser"),
+    ("Quiz", "quiz"),
     ("Stats", "stats"),
     ("Settings", "settings"),
     None,

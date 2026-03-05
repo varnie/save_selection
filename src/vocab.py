@@ -387,6 +387,42 @@ X-GNOME-Autostart-enabled=true
             "target_lang": target_lang
         }
 
+    def get_quiz_words(self, count: int, lang_code: str, pool: str = "all") -> list:
+        """Get words for a quiz."""
+        return self.db.get_quiz_words(count, lang_code, pool)
+
+    def count_words_with_translation(self, lang_code: str) -> int:
+        """Count words that have a translation in the given language."""
+        return self.db.count_words_with_translation(lang_code)
+
+    def start_quiz_session(self, quiz_type: str, lang_code: str, total: int) -> int:
+        """Create a quiz session, return its ID."""
+        return self.db.create_quiz_session(quiz_type, lang_code, total)
+
+    def record_quiz_answer(self, session_id: int, word_id: int, correct: bool,
+                           response_ms: int, correct_answer: str, user_answer: str):
+        """Record a quiz answer and update spaced repetition stats."""
+        self.db.record_quiz_answer(session_id, word_id, correct, response_ms,
+                                   correct_answer, user_answer)
+        # Update SM-2: correct = quality 4, wrong = quality 1
+        self.review_word(word_id, quality=4 if correct else 1)
+
+    def finish_quiz_session(self, session_id: int):
+        """Finish a quiz session."""
+        self.db.finish_quiz_session(session_id)
+
+    def get_quiz_history(self, limit: int = 20) -> list:
+        """Get recent quiz sessions."""
+        return self.db.get_quiz_history(limit)
+
+    def get_quiz_session_detail(self, session_id: int):
+        """Get full quiz session detail."""
+        return self.db.get_quiz_session_detail(session_id)
+
+    def get_quiz_stats(self) -> dict:
+        """Get aggregate quiz stats."""
+        return self.db.get_quiz_stats()
+
     def save_wotd_to_vocab(self, word: str, translation: str = None) -> tuple[dict|None, bool]:
         """Save WOTD word to user's vocabulary.
         

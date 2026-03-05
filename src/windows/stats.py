@@ -80,6 +80,25 @@ class StatsWindow(Gtk.Window):
         sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         box.pack_start(sep, False, False, 10)
 
+        # Quiz stats
+        quiz_stats = self.vocab_service.get_quiz_stats()
+        if quiz_stats["total_quizzes"] > 0:
+            quiz_title = Gtk.Label()
+            quiz_title.set_markup("<b>Quiz</b>")
+            box.pack_start(quiz_title, False, False, 0)
+
+            row = self._make_row("Quizzes taken:", str(quiz_stats["total_quizzes"]))
+            box.pack_start(row, False, False, 0)
+
+            row = self._make_row("Average score:", f"{quiz_stats['avg_score']}%")
+            box.pack_start(row, False, False, 0)
+
+            row = self._make_row("Best score:", f"{quiz_stats['best_score']}%")
+            box.pack_start(row, False, False, 0)
+
+            sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+            box.pack_start(sep, False, False, 10)
+
         # Export button
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         export_btn = Gtk.Button(label="Export CSV")

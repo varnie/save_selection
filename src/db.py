@@ -89,6 +89,36 @@ class WOTDHistory(Base):
     created_at = Column(Integer, nullable=False, default=_utc_timestamp)
 
 
+class QuizSession(Base):
+    __tablename__ = 'quiz_sessions'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    started_at = Column(Integer, nullable=False, default=_utc_timestamp)
+    finished_at = Column(Integer, nullable=True)
+    quiz_type = Column(String, nullable=False)  # "en_to_trans", "trans_to_en", "mixed"
+    language_code = Column(String, nullable=False)
+    total_questions = Column(Integer, nullable=False)
+    correct_count = Column(Integer, nullable=False, default=0)
+    score_pct = Column(Float, nullable=True)
+
+    answers = relationship("QuizAnswer", back_populates="session", cascade="all, delete-orphan")
+
+
+class QuizAnswer(Base):
+    __tablename__ = 'quiz_answers'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(Integer, ForeignKey('quiz_sessions.id', ondelete='CASCADE'), nullable=False)
+    word_id = Column(Integer, ForeignKey('words.id', ondelete='CASCADE'), nullable=False)
+    correct = Column(Integer, nullable=False)  # 0 or 1
+    response_ms = Column(Integer, nullable=True)
+    correct_answer = Column(String, nullable=False)
+    user_answer = Column(String, nullable=False)
+
+    session = relationship("QuizSession", back_populates="answers")
+    word = relationship("Word")
+
+
 class Setting(Base):
     __tablename__ = 'settings'
 
@@ -491,6 +521,164 @@ class Database:
         ).group_by(Language.id).all()
 
         return {row.code: (row.name, row.count) for row in results}
+
+    def get_quiz_words(self, count: int, lang_code: str, pool: str = "all") -> list:
+        """Get words for a quiz.
+
+        Args:
+            count: number of words (0 = all)
+            lang_code: target language code
+            pool: "all", "due", or "weakest"
+        """
+        lang = self.get_language_by_code(lang_code)
+        if not lang:
+            return []
+
+        query = self.session.query(
+            Word, Translation.translation
+        ).join(
+            Translation, (Translation.word_id == Word.id) & (Translation.language_id == lang.id)
+        ).outerjoin(WordStats, WordStats.word_id == Word.id)
+
+        if pool == "due":
+            now = int(time.time())
+            query = query.order_by(
+                func.coalesce(WordStats.due_date, 0).asc()
+            )
+        elif pool == "weakest":
+            query = query.order_by(
+                func.coalesce(WordStats.ease_factor, 2.5).asc(),
+                func.coalesce(WordStats.interval_days, 1).asc()
+            )
+        else:
+            query = query.order_by(func.random())
+
+        if count > 0:
+            query = query.limit(count)
+
+        rows = query.all()
+        return [
+            {
+                "id": word.id,
+                "phrase": word.phrase,
+                "translation": trans,
+            }
+            for word, trans in rows
+        ]
+
+    def count_words_with_translation(self, lang_code: str) -> int:
+        """Count words that have a translation in the given language."""
+        lang = self.get_language_by_code(lang_code)
+        if not lang:
+            return 0
+        return self.session.query(func.count(Translation.id)).filter(
+            Translation.language_id == lang.id
+        ).scalar() or 0
+
+    def create_quiz_session(self, quiz_type: str, lang_code: str, total: int) -> int:
+        """Create a quiz session, return its ID."""
+        session = QuizSession(
+            quiz_type=quiz_type,
+            language_code=lang_code,
+            total_questions=total,
+        )
+        self.session.add(session)
+        self._commit()
+        return session.id
+
+    def record_quiz_answer(self, session_id: int, word_id: int, correct: bool,
+                           response_ms: int, correct_answer: str, user_answer: str):
+        """Record a single quiz answer."""
+        answer = QuizAnswer(
+            session_id=session_id,
+            word_id=word_id,
+            correct=1 if correct else 0,
+            response_ms=response_ms,
+            correct_answer=correct_answer,
+            user_answer=user_answer,
+        )
+        self.session.add(answer)
+        self._commit()
+
+    def finish_quiz_session(self, session_id: int):
+        """Finish a quiz session, compute score."""
+        qs = self.session.query(QuizSession).filter_by(id=session_id).first()
+        if not qs:
+            return
+        qs.finished_at = _utc_timestamp()
+        correct = self.session.query(func.count(QuizAnswer.id)).filter(
+            QuizAnswer.session_id == session_id,
+            QuizAnswer.correct == 1,
+        ).scalar() or 0
+        qs.correct_count = correct
+        qs.score_pct = (correct / qs.total_questions * 100) if qs.total_questions > 0 else 0
+        self._commit()
+
+    def get_quiz_history(self, limit: int = 20) -> list:
+        """Get recent quiz sessions."""
+        rows = self.session.query(QuizSession).filter(
+            QuizSession.finished_at.isnot(None)
+        ).order_by(QuizSession.finished_at.desc()).limit(limit).all()
+        return [
+            {
+                "id": s.id,
+                "started_at": s.started_at,
+                "finished_at": s.finished_at,
+                "quiz_type": s.quiz_type,
+                "language_code": s.language_code,
+                "total_questions": s.total_questions,
+                "correct_count": s.correct_count,
+                "score_pct": s.score_pct,
+            }
+            for s in rows
+        ]
+
+    def get_quiz_session_detail(self, session_id: int) -> Optional[dict]:
+        """Get full quiz session with answers."""
+        qs = self.session.query(QuizSession).filter_by(id=session_id).first()
+        if not qs:
+            return None
+        answers = self.session.query(QuizAnswer, Word.phrase).join(
+            Word, Word.id == QuizAnswer.word_id
+        ).filter(QuizAnswer.session_id == session_id).all()
+        return {
+            "id": qs.id,
+            "started_at": qs.started_at,
+            "finished_at": qs.finished_at,
+            "quiz_type": qs.quiz_type,
+            "language_code": qs.language_code,
+            "total_questions": qs.total_questions,
+            "correct_count": qs.correct_count,
+            "score_pct": qs.score_pct,
+            "answers": [
+                {
+                    "word_id": a.word_id,
+                    "phrase": phrase,
+                    "correct": bool(a.correct),
+                    "response_ms": a.response_ms,
+                    "correct_answer": a.correct_answer,
+                    "user_answer": a.user_answer,
+                }
+                for a, phrase in answers
+            ],
+        }
+
+    def get_quiz_stats(self) -> dict:
+        """Get aggregate quiz statistics."""
+        total = self.session.query(func.count(QuizSession.id)).filter(
+            QuizSession.finished_at.isnot(None)
+        ).scalar() or 0
+        avg_score = self.session.query(func.avg(QuizSession.score_pct)).filter(
+            QuizSession.finished_at.isnot(None)
+        ).scalar()
+        best_score = self.session.query(func.max(QuizSession.score_pct)).filter(
+            QuizSession.finished_at.isnot(None)
+        ).scalar()
+        return {
+            "total_quizzes": total,
+            "avg_score": round(avg_score, 1) if avg_score else 0,
+            "best_score": round(best_score, 1) if best_score else 0,
+        }
 
     def mark_wotd_shown(self, word: str, level: str):
         """Record a word as shown for today (UTC)."""
