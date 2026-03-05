@@ -15,7 +15,7 @@ class AddWordDialog(Gtk.Window):
         super().__init__(title="Add New Word")
         self.vocab_service = vocab_service
         self.on_add = on_add
-        self.set_default_size(400, 280)
+        self.set_default_size(400, 250)
         self.set_position(Gtk.WindowPosition.CENTER)
 
         self.build_ui()
@@ -29,34 +29,35 @@ class AddWordDialog(Gtk.Window):
         box.set_margin_right(20)
         self.add(box)
 
-        # Get current target language
+        # Get source and target languages from settings
         settings = self.vocab_service.get_settings()
-        target_lang = settings.get("target_lang", "ru")
+        target_lang_code = settings.get("target_lang", "ru")
+        source_lang_code = settings.get("source_lang", "en")
         
-        # Find language object
+        # Find language objects
         languages = self.vocab_service.get_languages()
-        current_language = None
+        target_language = None
+        source_language = None
         for lang in languages:
-            if lang.code == target_lang:
-                current_language = lang
-                break
+            if lang.code == target_lang_code:
+                target_language = lang
+            if lang.code == source_lang_code:
+                source_language = lang
         
-        lang_name = current_language.name if current_language else target_lang
-        lang_abbrev = current_language.abbreviation if current_language else target_lang.upper()
+        target_lang_name = target_language.name if target_language else target_lang_code
+        target_lang_abbrev = target_language.abbreviation if target_language else target_lang_code.upper()
+        
+        source_lang_name = source_language.name if source_language else source_lang_code
+        source_lang_abbrev = source_language.abbreviation if source_language else source_lang_code.upper()
 
-        # Language info label
-        lang_label = Gtk.Label(f"Translation target: {lang_name} ({lang_abbrev})")
-        lang_label.set_xalign(0)
-        box.pack_start(lang_label, False, False, 0)
-
-        # Word entry
-        box.pack_start(Gtk.Label("Word/Phrase:"), False, False, 0)
+        # Word entry with source language label
+        box.pack_start(Gtk.Label(f"{source_lang_name} ({source_lang_abbrev}):"), False, False, 0)
         self.word_entry = Gtk.Entry()
         self.word_entry.set_placeholder_text("Enter word or phrase")
         box.pack_start(self.word_entry, False, False, 0)
 
-        # Translation entry
-        box.pack_start(Gtk.Label(f"Translation ({lang_abbrev}):"), False, False, 0)
+        # Translation entry with target language label
+        box.pack_start(Gtk.Label(f"{target_lang_name} ({target_lang_abbrev}):"), False, False, 0)
         self.translation_entry = Gtk.Entry()
         self.translation_entry.set_placeholder_text("Leave empty to auto-translate")
         box.pack_start(self.translation_entry, False, False, 0)
