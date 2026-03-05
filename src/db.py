@@ -135,6 +135,7 @@ class Database:
     def init_languages(self):
         """Initialize languages table with default data."""
         default_languages = [
+            ("en", "English", "EN"),
             ("ru", "Russian", "RU"),
             ("es", "Spanish", "ES"),
             ("fr", "French", "FR"),
