@@ -4,9 +4,10 @@
 import os
 import time
 from typing import Optional
-from db import Database, Word, Translation, Language
+
+from constants import AUTOSTART_DIR, AUTOSTART_FILE
+from db import Database, Word, Translation
 from translation import ProviderRegistry
-from constants import AUTOSTART_DIR, AUTOSTART_FILE, APP_NAME
 from wotd import get_word_source, WordSourceType
 
 

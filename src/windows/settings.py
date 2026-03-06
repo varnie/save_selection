@@ -78,8 +78,6 @@ class SettingsWindow(Gtk.Window):
         self.set_default_size(600, 1100)
         self.set_position(Gtk.WindowPosition.CENTER)
 
-        self.recording_key = None
-
         self.build_ui()
 
     def build_ui(self):

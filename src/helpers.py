@@ -7,9 +7,7 @@ from typing import Optional
 
 from config import read_config
 from constants import DEFAULT_DB_PATH, CONFIG_FILE, IS_MACOS
-from db import Database
 from vocab import VocabService
-
 
 # Module-level icon path
 ICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "translate.svg")
