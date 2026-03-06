@@ -17,10 +17,12 @@ from wotd import CEFR_LEVELS
 def get_git_sha():
     """Get current Git commit SHA."""
     import subprocess
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     try:
         return subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True
+            capture_output=True, text=True,
+            cwd=script_dir
         ).stdout.strip()
     except:
         return "unknown"
