@@ -2,7 +2,7 @@
 """Vocabulary service with SM-2 algorithm."""
 
 import os
-import time
+from datetime import datetime, timezone
 from typing import Optional
 
 from constants import AUTOSTART_DIR, AUTOSTART_FILE
@@ -151,7 +151,7 @@ X-GNOME-Autostart-enabled=true
             ease = 2.5
             due = 0
 
-        now = int(time.time())
+        now = int(datetime.now(timezone.utc).timestamp())
 
         # SM-2 algorithm
         if quality < 3:
@@ -188,7 +188,7 @@ X-GNOME-Autostart-enabled=true
             current_interval = 1
         
         # Move due date forward by a small amount (10 minutes) to deprioritize
-        new_due = int(time.time()) + 600  # 10 minutes from now
+        new_due = int(datetime.now(timezone.utc).timestamp()) + 600  # 10 minutes from now
         
         self.db.update_word_stats(word_id, current_interval, new_due, stats.get("ease_factor", 2.5) if stats else 2.5)
 

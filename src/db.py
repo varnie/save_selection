@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Database module for vocab app using SQLAlchemy."""
 
-import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -12,7 +11,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 
 def _utc_timestamp() -> int:
     """Get current UTC timestamp."""
-    return int(time.time())
+    return int(datetime.now(timezone.utc).timestamp())
 
 
 Base = declarative_base()
@@ -240,14 +239,14 @@ class Database:
             stats.interval_days = interval_days
             stats.due_date = due_date
             stats.ease_factor = ease_factor
-            stats.last_reviewed = int(time.time())
+            stats.last_reviewed = int(datetime.now(timezone.utc).timestamp())
         else:
             stats = WordStats(
                 word_id=word_id,
                 interval_days=interval_days,
                 due_date=due_date,
                 ease_factor=ease_factor,
-                last_reviewed=int(time.time())
+                last_reviewed=int(datetime.now(timezone.utc).timestamp())
             )
             self.session.add(stats)
 
