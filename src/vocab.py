@@ -163,7 +163,8 @@ X-GNOME-Autostart-enabled=true
             new_ease = ease + 0.1 - (quality - 3) * 0.08
             new_ease = max(1.3, new_ease)
 
-            if due == 0 or now >= due:
+            if due == 0:
+                # First review ever - apply reduced factor
                 new_interval = int(interval * new_ease * 0.5)
                 new_interval = max(1, new_interval)
             else:
