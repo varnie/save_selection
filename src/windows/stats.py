@@ -17,7 +17,7 @@ class StatsWindow(Gtk.Window):
 
         self.build_ui()
 
-    def build_ui(self):
+    def build_ui(self) -> None:
         """Build the UI."""
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.set_margin_top(20)
@@ -96,7 +96,7 @@ class StatsWindow(Gtk.Window):
         
         return box
 
-    def on_export(self, widget):
+    def on_export(self, widget: Gtk.Widget) -> None:
         """Export to CSV."""
         dialog = Gtk.FileChooserDialog(
             "Export to CSV",
@@ -131,7 +131,7 @@ class StatsWindow(Gtk.Window):
 
         dialog.destroy()
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh stats."""
         child = self.get_child()
         if child:

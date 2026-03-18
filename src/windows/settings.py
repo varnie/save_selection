@@ -8,7 +8,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib
 
-from translation import ProviderRegistry
+from infrastructure.translation import ProviderRegistry
 from config import read_config, write_config
 from constants import AUTOSTART_DIR, AUTOSTART_FILE, DEFAULT_DATA_DIR, IS_MACOS
 from wotd import CEFR_LEVELS
@@ -80,7 +80,7 @@ class SettingsWindow(Gtk.Window):
 
         self.build_ui()
 
-    def build_ui(self):
+    def build_ui(self) -> None:
         """Build the UI."""
         scroll = Gtk.ScrolledWindow()
         self.add(scroll)
@@ -300,7 +300,7 @@ class SettingsWindow(Gtk.Window):
         frame.add(align)
         return frame
 
-    def on_test_api(self, widget):
+    def on_test_api(self, widget: Gtk.Widget) -> None:
         """Test translation API."""
         provider = self.provider_combo.get_active_id()
         source_lang = self.src_lang_combo.get_active_id()
@@ -340,7 +340,7 @@ class SettingsWindow(Gtk.Window):
         self.test_status_label.set_text("")
         return False
 
-    def on_save_settings(self, widget):
+    def on_save_settings(self, widget: Gtk.Widget) -> None:
         """Save settings."""
         settings = {
             "review_interval": self.interval_combo.get_active_id(),

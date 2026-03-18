@@ -4,6 +4,8 @@
 from abc import ABC, abstractmethod
 import requests
 
+from domain.services import AbstractTranslationService
+
 
 class TranslationProvider(ABC):
     """Abstract base class for translation providers."""
@@ -160,3 +162,12 @@ class ProviderRegistry:
             (name, cls.get(name).get_name())
             for name in cls._providers.keys()
         ]
+
+
+class TranslationServiceImpl(AbstractTranslationService):
+    """Implementation of TranslationService using provider registry."""
+
+    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en", provider_name: str = "google_direct") -> str:
+        """Translate text using the specified provider."""
+        provider = ProviderRegistry.get(provider_name)
+        return provider.translate(text, target_lang, source_lang)

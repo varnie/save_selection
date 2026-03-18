@@ -20,7 +20,7 @@ class AddWordDialog(Gtk.Window):
 
         self.build_ui()
 
-    def build_ui(self):
+    def build_ui(self) -> None:
         """Build the UI."""
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.set_margin_top(20)
@@ -80,7 +80,7 @@ class AddWordDialog(Gtk.Window):
 
         box.pack_start(btn_box, False, False, 10)
 
-    def on_add_clicked(self, widget):
+    def on_add_clicked(self, widget: Gtk.Widget) -> None:
         """Add word with manual translation (no auto-translate)."""
         word = self.word_entry.get_text().strip()
         if not word:
@@ -97,7 +97,7 @@ class AddWordDialog(Gtk.Window):
             self.on_add(word)
         self.destroy()
 
-    def on_add_translate(self, widget):
+    def on_add_translate(self, widget: Gtk.Widget) -> None:
         """Add word and auto-translate."""
         word = self.word_entry.get_text().strip()
         if not word:

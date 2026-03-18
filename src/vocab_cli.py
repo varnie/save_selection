@@ -5,8 +5,10 @@ import argparse
 import os
 import sys
 
+from application import create_vocab_service
 from constants import CONFIG_FILE, TEMP_PHRASE_FILE
-from helpers import notify_cli, get_clipboard_text, init_vocab_service
+from infrastructure.clipboard import get_clipboard_text
+from infrastructure.notifications import send_notification
 
 
 def run_cli():
@@ -20,7 +22,7 @@ def run_cli():
     if not (args.save or args.delete or args.next):
         return False
     
-    vocab_service = init_vocab_service(CONFIG_FILE, must_exist=True)
+    vocab_service = create_vocab_service(CONFIG_FILE, must_exist=True)
     if not vocab_service:
         sys.exit(1)
     
@@ -28,7 +30,7 @@ def run_cli():
         try:
             result = get_clipboard_text()
             if not result:
-                notify_cli("No text selected")
+                send_notification("No text selected")
             else:
                 phrase = result.strip().lower()
                 if len(phrase) >= 1:
@@ -38,17 +40,17 @@ def run_cli():
                         translation, trans_lang = vocab_service.get_translation_with_lang(word["id"])
                         if translation:
                             abbrev = vocab_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
-                            notify_cli(f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]")
+                            send_notification(f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]")
                         else:
-                            notify_cli(f"Word saved: {phrase[:30]}")
+                            send_notification(f"Word saved: {phrase[:30]}")
                         
                         # Save to temp file for --delete hotkey
                         with open(TEMP_PHRASE_FILE, "w") as f:
                             f.write(phrase)
                 else:
-                    notify_cli("Word too short (min 1 char)")
+                    send_notification("Word too short (min 1 char)")
         except Exception as e:
-            notify_cli(f"Error: {e}")
+            send_notification(f"Error: {e}")
     
     if args.delete:
         temp_file = TEMP_PHRASE_FILE
@@ -57,13 +59,13 @@ def run_cli():
                 phrase = f.read().strip()
             if phrase:
                 vocab_service.delete_word(phrase)
-                notify_cli(f"Word deleted: {phrase[:30]}")
+                send_notification(f"Word deleted: {phrase[:30]}")
                 os.remove(temp_file)
     
     if args.next:
         body = vocab_service.get_next_word_notification()
         if body:
-            notify_cli(body)
+            send_notification(body)
     
     vocab_service.close()
     return True

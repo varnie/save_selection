@@ -23,7 +23,7 @@ class WordBrowserWindow(Gtk.Window):
         self.build_ui()
         self.load_words()
 
-    def build_ui(self):
+    def build_ui(self) -> None:
         """Build the UI."""
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         main_box.set_margin_top(15)
@@ -125,7 +125,7 @@ class WordBrowserWindow(Gtk.Window):
         self.status_label.set_xalign(0)
         bottom_bar.pack_start(self.status_label, True, True, 0)
 
-    def load_words(self):
+    def load_words(self) -> None:
         """Load words from database."""
         search = self.search_entry.get_text().strip() or None
         lang = self.lang_combo.get_active_id()
@@ -138,15 +138,15 @@ class WordBrowserWindow(Gtk.Window):
         self.words = self.vocab_service.get_words(search=search, target_lang=lang)
         self.refresh_model()
 
-    def refresh_model(self):
+    def refresh_model(self) -> None:
         """Refresh the tree model."""
         self.model.clear()
         
         for i, word in enumerate(self.words):
-            phrase = word.get("phrase", "")
-            target = word.get("target", "")
-            interval = word.get("interval_days", 1)
-            due_date = word.get("due_date")
+            phrase = word.phrase
+            target = word.translation
+            interval = word.interval_days
+            due_date = word.due_date
             
             # Format interval
             if interval == 1:
@@ -170,30 +170,22 @@ class WordBrowserWindow(Gtk.Window):
         total = len(self.words)
         self.status_label.set_text(f"Showing: {total}")
 
-    def on_search_changed(self, widget):
-        """Handle search text changed."""
-        # Cancel previous timeout
-        if self._search_timeout_id is not None:
+    def on_search_changed(self, widget: Gtk.Widget) -> None:
+        """Handle search entry changed."""
+        if self._search_timeout_id:
             GLib.source_remove(self._search_timeout_id)
         
-        # Add new timeout
         self._search_timeout_id = GLib.timeout_add(300, self._do_search)
 
-    def _do_search(self):
-        """Execute search after debounce."""
-        self._search_timeout_id = None
-        self.load_words()
-        return False
-
-    def on_lang_changed(self, widget):
-        """Handle language filter changed."""
+    def on_lang_changed(self, widget: Gtk.Widget) -> None:
+        """Handle language dropdown changed."""
         self.load_words()
 
-    def on_refresh(self, widget):
+    def on_refresh(self, widget: Gtk.Widget) -> None:
         """Handle refresh button clicked."""
         self.load_words()
 
-    def on_cursor_changed(self, widget):
+    def on_cursor_changed(self, widget: Gtk.Widget) -> None:
         """Handle row selection."""
         selection = self.treeview.get_selection()
         model, it = selection.get_selected()
@@ -201,7 +193,7 @@ class WordBrowserWindow(Gtk.Window):
         if it and model:
             idx = model.get_value(it, 0) - 1
             if 0 <= idx < len(self.words):
-                self.selected_word_id = self.words[idx]["id"]
+                self.selected_word_id = self.words[idx].id
                 self.delete_btn.set_sensitive(True)
             else:
                 self.selected_word_id = None
@@ -210,7 +202,7 @@ class WordBrowserWindow(Gtk.Window):
             self.selected_word_id = None
             self.delete_btn.set_sensitive(False)
 
-    def on_row_activated(self, treeview, path, column):
+    def on_row_activated(self, treeview: Gtk.TreeView, path: Gtk.TreePath, column: Gtk.TreeViewColumn) -> None:
         """Handle row double-clicked."""
         model = treeview.get_model()
         it = model.get_iter(path)
@@ -220,7 +212,7 @@ class WordBrowserWindow(Gtk.Window):
                 word = self.words[idx]
                 self.show_edit_dialog(word)
 
-    def on_delete(self, widget):
+    def on_delete(self, widget: Gtk.Widget) -> None:
         """Handle delete button clicked."""
         if not self.selected_word_id:
             return
@@ -228,7 +220,7 @@ class WordBrowserWindow(Gtk.Window):
         # Find the word
         word = None
         for w in self.words:
-            if w["id"] == self.selected_word_id:
+            if w.id == self.selected_word_id:
                 word = w
                 break
         
@@ -244,7 +236,7 @@ class WordBrowserWindow(Gtk.Window):
             Gtk.DialogFlags.DESTROY_WITH_PARENT,
             Gtk.MessageType.QUESTION,
             Gtk.ButtonsType.YES_NO,
-            f"Delete translation for '{word.get('phrase', '')}'?"
+            f"Delete translation for '{word.phrase}'?"
         )
         response = dialog.run()
         dialog.destroy()
@@ -256,7 +248,7 @@ class WordBrowserWindow(Gtk.Window):
             self.load_words()
             self.refresh_lang_dropdown()
 
-    def refresh_lang_dropdown(self):
+    def refresh_lang_dropdown(self) -> None:
         """Refresh language dropdown counts."""
         lang_counts = self.vocab_service.get_language_counts()
         
@@ -291,7 +283,7 @@ class WordBrowserWindow(Gtk.Window):
         # Reload words with the selected language
         self.load_words()
 
-    def show_edit_dialog(self, word):
+    def show_edit_dialog(self, word) -> None:
         """Show edit dialog for a word."""
         dialog = Gtk.Dialog("Edit Word", self, Gtk.DialogFlags.DESTROY_WITH_PARENT,
                            ("Cancel", Gtk.ResponseType.CANCEL, "Save", Gtk.ResponseType.OK))
@@ -305,13 +297,13 @@ class WordBrowserWindow(Gtk.Window):
         # Word entry
         box.pack_start(Gtk.Label("Word:"), False, False, 5)
         word_entry = Gtk.Entry()
-        word_entry.set_text(word.get("phrase", ""))
+        word_entry.set_text(word.phrase)
         box.pack_start(word_entry, False, False, 5)
 
         # Translation entry
         box.pack_start(Gtk.Label("Translation:"), False, False, 5)
         trans_entry = Gtk.Entry()
-        trans_entry.set_text(word.get("target", ""))
+        trans_entry.set_text(word.translation)
         box.pack_start(trans_entry, False, False, 5)
 
         dialog.show_all()
@@ -322,7 +314,7 @@ class WordBrowserWindow(Gtk.Window):
             new_trans = trans_entry.get_text().strip()
             
             if new_phrase:
-                self.vocab_service.update_word(word["id"], new_phrase, new_trans if new_trans else None)
+                self.vocab_service.update_word(word.id, new_phrase, new_trans if new_trans else None)
                 self.load_words()
                 self.refresh_lang_dropdown()
 
