@@ -221,7 +221,7 @@ class VocabTrayApp:
 
     def on_settings(self, widget: Gtk.Widget) -> None:
         """Show settings window."""
-        win = SettingsWindow(self.vocab_service)
+        win = SettingsWindow(self.vocab_service, config_file=CONFIG_FILE)
         win.show_all()
 
     def on_word_browser(self, widget: Gtk.Widget) -> None:
