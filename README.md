@@ -142,3 +142,4 @@ Uses the **SM-2 algorithm**:
 #### Words don't appear in review
 - The app shows words that are due for review (based on interval)
 - Make sure your target language matches the translations you want to review
+# test comment
