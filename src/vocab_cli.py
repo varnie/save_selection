@@ -18,14 +18,14 @@ def run_cli():
     parser.add_argument("--delete", action="store_true", help="Delete current word")
     parser.add_argument("--next", action="store_true", help="Show next word")
     args = parser.parse_args()
-    
+
     if not (args.save or args.delete or args.next):
         return False
-    
+
     vocab_service = create_vocab_service(CONFIG_FILE, must_exist=True)
     if not vocab_service:
         sys.exit(1)
-    
+
     if args.save:
         try:
             result = get_clipboard_text()
@@ -35,15 +35,23 @@ def run_cli():
                 phrase = result.strip().lower()
                 if len(phrase) >= 1:
                     word = vocab_service.add_word(phrase, auto_translate=True)
-                    
+
                     if word:
-                        translation, trans_lang = vocab_service.get_translation_with_lang(word["id"])
+                        translation, trans_lang = (
+                            vocab_service.get_translation_with_lang(word.id)
+                        )
                         if translation:
-                            abbrev = vocab_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
-                            send_notification(f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]")
+                            abbrev = (
+                                vocab_service.get_language_abbreviation(trans_lang)
+                                if trans_lang
+                                else "—"
+                            )
+                            send_notification(
+                                f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]"
+                            )
                         else:
                             send_notification(f"Word saved: {phrase[:30]}")
-                        
+
                         # Save to temp file for --delete hotkey
                         with open(TEMP_PHRASE_FILE, "w") as f:
                             f.write(phrase)
@@ -51,7 +59,7 @@ def run_cli():
                     send_notification("Word too short (min 1 char)")
         except Exception as e:
             send_notification(f"Error: {e}")
-    
+
     if args.delete:
         temp_file = TEMP_PHRASE_FILE
         if os.path.exists(temp_file):
@@ -61,12 +69,12 @@ def run_cli():
                 vocab_service.delete_word(phrase)
                 send_notification(f"Word deleted: {phrase[:30]}")
                 os.remove(temp_file)
-    
+
     if args.next:
         body = vocab_service.get_next_word_notification()
         if body:
             send_notification(body)
-    
+
     vocab_service.close()
     return True
 
