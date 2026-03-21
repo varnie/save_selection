@@ -13,8 +13,15 @@ jobs:
       - name: Write VERSION file
         run: git rev-parse --short HEAD > VERSION
 
-      - name: Upload VERSION
-        uses: actions/upload-artifact@v4
+      - name: Commit VERSION
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add VERSION
+          git diff --quiet || git commit -m "chore: update VERSION"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
         with:
-          name: version
-          path: VERSION
+          github_token: ${{ secrets.PUSH_TOKEN }}
+          force: true
