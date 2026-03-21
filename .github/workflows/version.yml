@@ -1,0 +1,27 @@
+name: Update Version
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write VERSION file
+        run: git rev-parse --short HEAD > VERSION
+
+      - name: Commit VERSION
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add VERSION
+          git diff --quiet || git commit -m "chore: update VERSION"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          force: true

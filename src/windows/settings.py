@@ -5,7 +5,8 @@ import os
 import plistlib
 
 import gi
-gi.require_version('Gtk', '3.0')
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
 
 from infrastructure.translation import ProviderRegistry
@@ -14,18 +15,7 @@ from constants import AUTOSTART_DIR, AUTOSTART_FILE, DEFAULT_DATA_DIR, IS_MACOS
 from wotd import CEFR_LEVELS
 
 
-def get_git_sha():
-    """Get current Git commit SHA."""
-    import subprocess
-    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    try:
-        return subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True,
-            cwd=script_dir
-        ).stdout.strip()
-    except:
-        return "unknown"
+from version import get_version
 
 
 def _get_autostart_enabled() -> bool:
@@ -37,8 +27,17 @@ def _set_autostart(enabled: bool):
     """Enable or disable autostart."""
     if enabled:
         os.makedirs(AUTOSTART_DIR, exist_ok=True)
-        script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vocab_gui.py")
-        python_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "venv", "bin", "python3")
+        script_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vocab_gui.py"
+        )
+        python_path = os.path.join(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            ),
+            "venv",
+            "bin",
+            "python3",
+        )
 
         if IS_MACOS:
             # macOS LaunchAgent plist
@@ -106,7 +105,9 @@ class SettingsWindow(Gtk.Window):
         ]
         for value, label in intervals:
             self.interval_combo.append(value, label)
-        current_interval = str(self.vocab_service.get_settings().get("review_interval", "3600"))
+        current_interval = str(
+            self.vocab_service.get_settings().get("review_interval", "3600")
+        )
         self.interval_combo.set_active_id(current_interval)
         interval_box.pack_end(self.interval_combo, False, False, 0)
 
@@ -125,7 +126,9 @@ class SettingsWindow(Gtk.Window):
             self.provider_combo.append(provider, name)
 
         # Handle legacy "google" setting and default
-        current_provider = self.vocab_service.get_settings().get("translation_provider", "google_direct")
+        current_provider = self.vocab_service.get_settings().get(
+            "translation_provider", "google_direct"
+        )
         if current_provider == "google":
             current_provider = "google_direct"  # Legacy fallback
         if current_provider not in [p[0] for p in ProviderRegistry.list_providers()]:
@@ -194,8 +197,12 @@ class SettingsWindow(Gtk.Window):
         shortcuts_box.pack_start(info_label, False, False, 0)
 
         # Commands info
-        cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vocab_cli.py")
-        cmds_label = Gtk.Label(f"Save selected:   python3 {cli_path} --save\nDelete current: python3 {cli_path} --delete\nShow next:      python3 {cli_path} --next")
+        cli_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vocab_cli.py"
+        )
+        cmds_label = Gtk.Label(
+            f"Save selected:   python3 {cli_path} --save\nDelete current: python3 {cli_path} --delete\nShow next:      python3 {cli_path} --next"
+        )
         cmds_label.set_xalign(0)
         cmds_label.set_line_wrap(True)
         cmds_label.set_selectable(True)
@@ -276,8 +283,7 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(btn_box, False, False, 10)
 
         # Version footer
-        sha = get_git_sha()
-        footer_label = Gtk.Label(f"App version: {sha}")
+        footer_label = Gtk.Label(f"App version: {get_version()}")
         footer_label.set_xalign(0)
         footer_label.set_margin_top(10)
         footer_label.set_selectable(True)
@@ -320,6 +326,7 @@ class SettingsWindow(Gtk.Window):
             GLib.idle_add(self._test_complete, success, provider_name)
 
         import threading
+
         thread = threading.Thread(target=run_test)
         thread.daemon = True
         thread.start()
@@ -382,7 +389,7 @@ class SettingsWindow(Gtk.Window):
             Gtk.DialogFlags.DESTROY_WITH_PARENT,
             Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK,
-            msg_text
+            msg_text,
         )
         msg.run()
         msg.destroy()
