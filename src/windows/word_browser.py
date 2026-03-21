@@ -2,7 +2,8 @@
 """Word browser window."""
 
 import gi
-gi.require_version('Gtk', '3.0')
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
 
 from datetime import datetime, timezone
@@ -16,7 +17,6 @@ class WordBrowserWindow(Gtk.Window):
         self.vocab_service = vocab_service
         self.selected_word_id = None
         self.words = []
-        self._search_timeout_id = None
         self.set_default_size(910, 600)
         self.set_position(Gtk.WindowPosition.CENTER)
 
@@ -41,6 +41,7 @@ class WordBrowserWindow(Gtk.Window):
         self.search_entry.set_placeholder_text("Search words...")
         self.search_entry.set_width_chars(25)
         self.search_entry.connect("changed", self.on_search_changed)
+        self.search_entry.connect("activate", self.on_search_activate)
         toolbar.pack_start(self.search_entry, False, False, 0)
 
         # Language filter
@@ -49,28 +50,32 @@ class WordBrowserWindow(Gtk.Window):
         self.lang_combo = Gtk.ComboBoxText()
         settings = self.vocab_service.get_settings()
         current_lang = settings.get("target_lang", "ru")
-        
+
         # Get word counts per language
         lang_counts = self.vocab_service.get_language_counts()
-        
+
         # Current language count
-        current_count = lang_counts.get(current_lang, (None, 0))[1] if current_lang else 0
-        
+        current_count = (
+            lang_counts.get(current_lang, (None, 0))[1] if current_lang else 0
+        )
+
         # Only add current language if it has words
         if current_count > 0:
-            self.lang_combo.append(current_lang, f"{current_lang.upper()} ({current_count})")
-        
+            self.lang_combo.append(
+                current_lang, f"{current_lang.upper()} ({current_count})"
+            )
+
         # Sort languages alphabetically and add with counts
         languages = self.vocab_service.get_languages()
         sorted_languages = sorted(languages, key=lambda l: l.name)
-        
+
         for lang in sorted_languages:
             if lang.code == current_lang:
                 continue
             name, count = lang_counts.get(lang.code, (lang.name, 0))
             if count > 0:
                 self.lang_combo.append(lang.code, f"{name} ({count})")
-        
+
         self.lang_combo.set_active_id(current_lang if current_lang else "")
         self.lang_combo.connect("changed", self.on_lang_changed)
         toolbar.pack_start(self.lang_combo, False, False, 0)
@@ -128,26 +133,26 @@ class WordBrowserWindow(Gtk.Window):
     def load_words(self) -> None:
         """Load words from database."""
         search = self.search_entry.get_text().strip() or None
-        lang = self.lang_combo.get_active_id()
-        
+        lang = self.lang_combo.get_active_id() if self.lang_combo.get_model() else None
+
         # If empty or None, use current language from settings
         if not lang:
             settings = self.vocab_service.get_settings()
             lang = settings.get("target_lang", "ru")
-        
+
         self.words = self.vocab_service.get_words(search=search, target_lang=lang)
         self.refresh_model()
 
     def refresh_model(self) -> None:
         """Refresh the tree model."""
         self.model.clear()
-        
+
         for i, word in enumerate(self.words):
             phrase = word.phrase
             target = word.translation
             interval = word.interval_days
             due_date = word.due_date
-            
+
             # Format interval
             if interval == 1:
                 interval_str = "1 day"
@@ -157,25 +162,27 @@ class WordBrowserWindow(Gtk.Window):
                 interval_str = f"{interval // 30} mo"
             else:
                 interval_str = f"{interval // 365} yr"
-            
+
             # Format due date
             if due_date:
                 due = datetime.fromtimestamp(due_date, tz=timezone.utc)
                 due_str = due.strftime("%Y-%m-%d")
             else:
                 due_str = "New"
-            
+
             self.model.append([i + 1, phrase, target, interval_str, due_str])
-        
+
         total = len(self.words)
         self.status_label.set_text(f"Showing: {total}")
+        self._updating_model = False
 
     def on_search_changed(self, widget: Gtk.Widget) -> None:
         """Handle search entry changed."""
-        if self._search_timeout_id:
-            GLib.source_remove(self._search_timeout_id)
-        
-        self._search_timeout_id = GLib.timeout_add(300, self._do_search)
+        self.load_words()
+
+    def on_search_activate(self, widget: Gtk.Widget) -> None:
+        """Handle search entry Enter key."""
+        self.load_words()
 
     def on_lang_changed(self, widget: Gtk.Widget) -> None:
         """Handle language dropdown changed."""
@@ -189,7 +196,7 @@ class WordBrowserWindow(Gtk.Window):
         """Handle row selection."""
         selection = self.treeview.get_selection()
         model, it = selection.get_selected()
-        
+
         if it and model:
             idx = model.get_value(it, 0) - 1
             if 0 <= idx < len(self.words):
@@ -202,7 +209,9 @@ class WordBrowserWindow(Gtk.Window):
             self.selected_word_id = None
             self.delete_btn.set_sensitive(False)
 
-    def on_row_activated(self, treeview: Gtk.TreeView, path: Gtk.TreePath, column: Gtk.TreeViewColumn) -> None:
+    def on_row_activated(
+        self, treeview: Gtk.TreeView, path: Gtk.TreePath, column: Gtk.TreeViewColumn
+    ) -> None:
         """Handle row double-clicked."""
         model = treeview.get_model()
         it = model.get_iter(path)
@@ -216,31 +225,33 @@ class WordBrowserWindow(Gtk.Window):
         """Handle delete button clicked."""
         if not self.selected_word_id:
             return
-        
+
         # Find the word
         word = None
         for w in self.words:
             if w.id == self.selected_word_id:
                 word = w
                 break
-        
+
         if not word:
             return
-        
+
         # Get current language from dropdown
-        current_lang = self.lang_combo.get_active_id()
-        
+        current_lang = (
+            self.lang_combo.get_active_id() if self.lang_combo.get_model() else None
+        )
+
         # Confirm dialog
         dialog = Gtk.MessageDialog(
             self,
             Gtk.DialogFlags.DESTROY_WITH_PARENT,
             Gtk.MessageType.QUESTION,
             Gtk.ButtonsType.YES_NO,
-            f"Delete translation for '{word.phrase}'?"
+            f"Delete translation for '{word.phrase}'?",
         )
         response = dialog.run()
         dialog.destroy()
-        
+
         if response == Gtk.ResponseType.YES:
             # Only delete translation for current language, not the whole word
             self.vocab_service.delete_translation(self.selected_word_id, current_lang)
@@ -251,23 +262,29 @@ class WordBrowserWindow(Gtk.Window):
     def refresh_lang_dropdown(self) -> None:
         """Refresh language dropdown counts."""
         lang_counts = self.vocab_service.get_language_counts()
-        
+
         # Preserve current selection before rebuilding
-        selected_lang = self.lang_combo.get_active_id()
+        selected_lang = (
+            self.lang_combo.get_active_id() if self.lang_combo.get_model() else None
+        )
         if not selected_lang:
             settings = self.vocab_service.get_settings()
             selected_lang = settings.get("target_lang", "ru")
-        
+
         # Get all languages and update counts
         languages = self.vocab_service.get_languages()
-        
+
         self.lang_combo.remove_all()
-        
+
         # Add selected language first (only if has words)
-        selected_count = lang_counts.get(selected_lang, (None, 0))[1] if selected_lang else 0
+        selected_count = (
+            lang_counts.get(selected_lang, (None, 0))[1] if selected_lang else 0
+        )
         if selected_count > 0:
-            self.lang_combo.append(selected_lang, f"{selected_lang.upper()} ({selected_count})")
-        
+            self.lang_combo.append(
+                selected_lang, f"{selected_lang.upper()} ({selected_count})"
+            )
+
         # Add other languages
         sorted_languages = sorted(languages, key=lambda l: l.name)
         for lang in sorted_languages:
@@ -276,18 +293,22 @@ class WordBrowserWindow(Gtk.Window):
             name, count = lang_counts.get(lang.code, (lang.name, 0))
             if count > 0:
                 self.lang_combo.append(lang.code, f"{name} ({count})")
-        
+
         # Set active to preserved selection
         self.lang_combo.set_active_id(selected_lang if selected_count > 0 else "")
-        
+
         # Reload words with the selected language
         self.load_words()
 
     def show_edit_dialog(self, word) -> None:
         """Show edit dialog for a word."""
-        dialog = Gtk.Dialog("Edit Word", self, Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                           ("Cancel", Gtk.ResponseType.CANCEL, "Save", Gtk.ResponseType.OK))
-        
+        dialog = Gtk.Dialog(
+            "Edit Word",
+            self,
+            Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            ("Cancel", Gtk.ResponseType.CANCEL, "Save", Gtk.ResponseType.OK),
+        )
+
         box = dialog.get_content_area()
         box.set_margin_top(15)
         box.set_margin_bottom(15)
@@ -312,9 +333,11 @@ class WordBrowserWindow(Gtk.Window):
         if response == Gtk.ResponseType.OK:
             new_phrase = word_entry.get_text().strip()
             new_trans = trans_entry.get_text().strip()
-            
+
             if new_phrase:
-                self.vocab_service.update_word(word.id, new_phrase, new_trans if new_trans else None)
+                self.vocab_service.update_word(
+                    word.id, new_phrase, new_trans if new_trans else None
+                )
                 self.load_words()
                 self.refresh_lang_dropdown()
 
