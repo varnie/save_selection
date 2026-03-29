@@ -202,9 +202,7 @@ class VocabApp(Gtk.Application):
         if translation:
             body += f"\n→ {translation} [{abbrev}]"
 
-        with open(TEMP_PHRASE_FILE, "w") as f:
-            f.write(word.phrase)
-
+        self._set_current_phrase(word.phrase)
         self.vocab_service.skip_word(word.id)
         self.notify(body)
 
@@ -213,6 +211,7 @@ class VocabApp(Gtk.Application):
         try:
             word = self.vocab_service.get_word_of_the_day()
             if word:
+                self._set_current_phrase(word.phrase)
                 body = f"<b>{word.phrase}</b>\n→ {word.translation}"
                 self.notify(body, "Word of the Day")
         except Exception as e:
@@ -220,11 +219,15 @@ class VocabApp(Gtk.Application):
         finally:
             self.vocab_service.remove_session()
 
+    def _set_current_phrase(self, phrase: str) -> None:
+        """Set current phrase for discard hotkey."""
+        with open(TEMP_PHRASE_FILE, "w") as f:
+            f.write(phrase)
+
     def get_current_phrase(self) -> str | None:
         """Get current word from temp file or memory."""
-        temp_file = TEMP_PHRASE_FILE
-        if os.path.exists(temp_file):
-            with open(temp_file) as f:
+        if os.path.exists(TEMP_PHRASE_FILE):
+            with open(TEMP_PHRASE_FILE) as f:
                 return f.read().strip()
         return self.current_word.phrase if self.current_word else None
 
