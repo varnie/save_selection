@@ -15,7 +15,11 @@ class SQLiteDatabase(BaseDatabase):
 
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self.engine = create_engine(f'sqlite:///{db_path}', echo=False)
+        self.engine = create_engine(
+            f"sqlite:///{db_path}",
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
         session_factory = sessionmaker(bind=self.engine, expire_on_commit=False)
         self.ScopedSession = scoped_session(session_factory)
         self._connected = False

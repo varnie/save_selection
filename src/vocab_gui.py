@@ -43,8 +43,9 @@ class VocabApp(Gtk.Application):
         self.config_file = CONFIG_FILE
         self.vocab_service = None
         self.current_word = None
-        self.paused_until = 0
+        self.paused_until = 0.0
         self.running = True
+        self._state_lock = threading.Lock()
         self.settings_changed = threading.Event()
         self.tray = None
 
@@ -149,12 +150,17 @@ class VocabApp(Gtk.Application):
 
     def review_loop(self) -> None:
         """Background review loop."""
-        while self.running:
+        while True:
+            with self._state_lock:
+                if not self.running:
+                    break
+                current_paused = self.paused_until
+
             try:
                 settings = self.vocab_service.get_settings()
                 interval = int(settings.get("review_interval", 3600))
 
-                if time.time() < self.paused_until:
+                if time.time() < current_paused:
                     self.settings_changed.wait(60)
                     continue
 
@@ -163,8 +169,9 @@ class VocabApp(Gtk.Application):
                     self.current_word = word
                     self.show_word_popup(word)
                     for _ in range(interval // 60):
-                        if not self.running:
-                            break
+                        with self._state_lock:
+                            if not self.running:
+                                break
                         self.settings_changed.wait(60)
                         self.settings_changed.clear()
                 else:
@@ -174,6 +181,8 @@ class VocabApp(Gtk.Application):
             except Exception as e:
                 print(f"Review loop error: {e}")
                 self.settings_changed.wait(60)
+
+        self.vocab_service.remove_session()
 
     def show_word_popup(self, word) -> None:
         """Show word popup notification."""
@@ -264,12 +273,14 @@ class VocabApp(Gtk.Application):
 
     def on_pause(self, widget=None) -> None:
         """Pause reviews for 1 hour."""
-        self.paused_until = time.time() + 3600
+        with self._state_lock:
+            self.paused_until = time.time() + 3600
         self.tray.set_pause_label("Resume")
 
     def on_resume(self, widget=None) -> None:
         """Resume reviews."""
-        self.paused_until = None
+        with self._state_lock:
+            self.paused_until = 0.0
         self.tray.set_pause_label("Pause (1 hour)")
 
     def on_settings(self, widget=None) -> None:
@@ -298,7 +309,9 @@ class VocabApp(Gtk.Application):
 
     def on_quit(self, widget=None) -> None:
         """Quit application."""
-        self.running = False
+        with self._state_lock:
+            self.running = False
+        self.settings_changed.set()
         self.vocab_service.close()
         self.quit()
 

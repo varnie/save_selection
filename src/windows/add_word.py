@@ -2,7 +2,8 @@
 """Add word dialog."""
 
 import gi
-gi.require_version('Gtk', '3.0')
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from constants import TEMP_PHRASE_FILE
@@ -33,7 +34,7 @@ class AddWordDialog(Gtk.Window):
         settings = self.vocab_service.get_settings()
         target_lang_code = settings.get("target_lang", "ru")
         source_lang_code = settings.get("source_lang", "en")
-        
+
         # Find language objects
         languages = self.vocab_service.get_languages()
         target_language = None
@@ -43,21 +44,33 @@ class AddWordDialog(Gtk.Window):
                 target_language = lang
             if lang.code == source_lang_code:
                 source_language = lang
-        
+
         target_lang_name = target_language.name if target_language else target_lang_code
-        target_lang_abbrev = target_language.abbreviation if target_language else target_lang_code.upper()
-        
+        target_lang_abbrev = (
+            target_language.abbreviation
+            if target_language
+            else target_lang_code.upper()
+        )
+
         source_lang_name = source_language.name if source_language else source_lang_code
-        source_lang_abbrev = source_language.abbreviation if source_language else source_lang_code.upper()
+        source_lang_abbrev = (
+            source_language.abbreviation
+            if source_language
+            else source_lang_code.upper()
+        )
 
         # Word entry with source language label
-        box.pack_start(Gtk.Label(f"{source_lang_name} ({source_lang_abbrev}):"), False, False, 0)
+        box.pack_start(
+            Gtk.Label(f"{source_lang_name} ({source_lang_abbrev}):"), False, False, 0
+        )
         self.word_entry = Gtk.Entry()
         self.word_entry.set_placeholder_text("Enter word or phrase")
         box.pack_start(self.word_entry, False, False, 0)
 
         # Translation entry with target language label
-        box.pack_start(Gtk.Label(f"{target_lang_name} ({target_lang_abbrev}):"), False, False, 0)
+        box.pack_start(
+            Gtk.Label(f"{target_lang_name} ({target_lang_abbrev}):"), False, False, 0
+        )
         self.translation_entry = Gtk.Entry()
         self.translation_entry.set_placeholder_text("Leave empty to auto-translate")
         box.pack_start(self.translation_entry, False, False, 0)
@@ -84,12 +97,16 @@ class AddWordDialog(Gtk.Window):
         """Add word with manual translation (no auto-translate)."""
         word = self.word_entry.get_text().strip()
         if not word:
+            self._show_error("Please enter a word or phrase")
             return
 
         translation = self.translation_entry.get_text().strip() or None
-        self.vocab_service.add_word(word, translation, auto_translate=False)
+        try:
+            self.vocab_service.add_word(word, translation, auto_translate=False)
+        except ValueError as e:
+            self._show_error(str(e))
+            return
 
-        # Save to temp file for --delete hotkey
         with open(TEMP_PHRASE_FILE, "w") as f:
             f.write(word)
 
@@ -101,14 +118,30 @@ class AddWordDialog(Gtk.Window):
         """Add word and auto-translate."""
         word = self.word_entry.get_text().strip()
         if not word:
+            self._show_error("Please enter a word or phrase")
             return
 
-        self.vocab_service.add_word(word, None, auto_translate=True)
+        try:
+            self.vocab_service.add_word(word, None, auto_translate=True)
+        except ValueError as e:
+            self._show_error(str(e))
+            return
 
-        # Save to temp file for --delete hotkey
         with open(TEMP_PHRASE_FILE, "w") as f:
             f.write(word)
 
         if self.on_add:
             self.on_add(word)
         self.destroy()
+
+    def _show_error(self, message: str) -> None:
+        """Show error dialog."""
+        dialog = Gtk.MessageDialog(
+            self,
+            Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            Gtk.MessageType.ERROR,
+            Gtk.ButtonsType.OK,
+            message,
+        )
+        dialog.run()
+        dialog.destroy()

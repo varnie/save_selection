@@ -31,32 +31,25 @@ def run_cli():
             result = get_clipboard_text()
             if not result:
                 send_notification("No text selected")
+                return
+            phrase = result.strip().lower()
+            word = vocab_service.add_word(phrase, auto_translate=True)
+
+            translation, trans_lang = vocab_service.get_translation_with_lang(word.id)
+            if translation:
+                abbrev = (
+                    vocab_service.get_language_abbreviation(trans_lang)
+                    if trans_lang
+                    else "—"
+                )
+                send_notification(f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]")
             else:
-                phrase = result.strip().lower()
-                if len(phrase) >= 1:
-                    word = vocab_service.add_word(phrase, auto_translate=True)
+                send_notification(f"Word saved: {phrase[:30]}")
 
-                    if word:
-                        translation, trans_lang = (
-                            vocab_service.get_translation_with_lang(word.id)
-                        )
-                        if translation:
-                            abbrev = (
-                                vocab_service.get_language_abbreviation(trans_lang)
-                                if trans_lang
-                                else "—"
-                            )
-                            send_notification(
-                                f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]"
-                            )
-                        else:
-                            send_notification(f"Word saved: {phrase[:30]}")
-
-                        # Save to temp file for --delete hotkey
-                        with open(TEMP_PHRASE_FILE, "w") as f:
-                            f.write(phrase)
-                else:
-                    send_notification("Word too short (min 1 char)")
+            with open(TEMP_PHRASE_FILE, "w") as f:
+                f.write(phrase)
+        except ValueError as e:
+            send_notification(f"Invalid input: {e}")
         except Exception as e:
             send_notification(f"Error: {e}")
 
