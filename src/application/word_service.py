@@ -9,7 +9,10 @@ from domain.repositories import (
     AbstractLanguageRepository,
     AbstractSettingsRepository,
 )
-from domain.services import AbstractTranslationService, AbstractWordManagementService
+from application.service_interfaces import (
+    AbstractTranslationService,
+    AbstractWordManagementService,
+)
 
 
 class WordManagementService(AbstractWordManagementService):

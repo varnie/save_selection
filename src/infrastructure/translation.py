@@ -4,14 +4,16 @@
 from abc import ABC, abstractmethod
 import requests
 
-from domain.services import AbstractTranslationService
+from application.service_interfaces import AbstractTranslationService
 
 
 class TranslationProvider(ABC):
     """Abstract base class for translation providers."""
 
     @abstractmethod
-    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
+    def translate(
+        self, text: str, target_lang: str = "ru", source_lang: str = "en"
+    ) -> str:
         """Translate text to target language."""
         pass
 
@@ -27,7 +29,9 @@ class GoogleDirectProvider(TranslationProvider):
     def __init__(self):
         self.base_url = "https://translate.googleapis.com/translate_a/single"
 
-    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
+    def translate(
+        self, text: str, target_lang: str = "ru", source_lang: str = "en"
+    ) -> str:
         """Translate text using Google Translate."""
         try:
             response = requests.get(
@@ -63,9 +67,12 @@ class GoogleDeepTranslatorProvider(TranslationProvider):
 
     def __init__(self):
         from deep_translator import GoogleTranslator
-        self.translator = GoogleTranslator(source='en', target='ru')
 
-    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
+        self.translator = GoogleTranslator(source="en", target="ru")
+
+    def translate(
+        self, text: str, target_lang: str = "ru", source_lang: str = "en"
+    ) -> str:
         """Translate text using Google Translate via deep-translator."""
         try:
             self.translator.source = source_lang
@@ -85,9 +92,14 @@ class EasyGoogleProvider(TranslationProvider):
 
     def __init__(self):
         from easygoogletranslate import EasyGoogleTranslate
-        self.translator = EasyGoogleTranslate(source_language='en', target_language='ru')
 
-    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
+        self.translator = EasyGoogleTranslate(
+            source_language="en", target_language="ru"
+        )
+
+    def translate(
+        self, text: str, target_lang: str = "ru", source_lang: str = "en"
+    ) -> str:
         """Translate text using easygoogletranslate."""
         try:
             self.translator.source_language = source_lang
@@ -107,24 +119,27 @@ class MyMemoryProvider(TranslationProvider):
 
     def __init__(self):
         from deep_translator import MyMemoryTranslator
-        self.translator = MyMemoryTranslator(source='en-US', target='ru-RU')
 
-    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
+        self.translator = MyMemoryTranslator(source="en-US", target="ru-RU")
+
+    def translate(
+        self, text: str, target_lang: str = "ru", source_lang: str = "en"
+    ) -> str:
         """Translate text using MyMemory API."""
         try:
             lang_map = {
-                'ru': 'ru-RU',
-                'en': 'en-US',
-                'de': 'de-DE',
-                'fr': 'fr-FR',
-                'es': 'es-ES',
-                'it': 'it-IT',
-                'pt': 'pt-PT',
-                'uk': 'uk-UA',
+                "ru": "ru-RU",
+                "en": "en-US",
+                "de": "de-DE",
+                "fr": "fr-FR",
+                "es": "es-ES",
+                "it": "it-IT",
+                "pt": "pt-PT",
+                "uk": "uk-UA",
             }
-            src_lang = lang_map.get(source_lang, f'{source_lang}-{source_lang.upper()}')
-            tgt_lang = lang_map.get(target_lang, f'{target_lang}-{target_lang.upper()}')
-            
+            src_lang = lang_map.get(source_lang, f"{source_lang}-{source_lang.upper()}")
+            tgt_lang = lang_map.get(target_lang, f"{target_lang}-{target_lang.upper()}")
+
             self.translator.source = src_lang
             self.translator.target = tgt_lang
             result = self.translator.translate(text)
@@ -158,16 +173,19 @@ class ProviderRegistry:
     @classmethod
     def list_providers(cls) -> list:
         """List available providers."""
-        return [
-            (name, cls.get(name).get_name())
-            for name in cls._providers.keys()
-        ]
+        return [(name, cls.get(name).get_name()) for name in cls._providers.keys()]
 
 
 class TranslationServiceImpl(AbstractTranslationService):
     """Implementation of TranslationService using provider registry."""
 
-    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en", provider_name: str = "google_direct") -> str:
+    def translate(
+        self,
+        text: str,
+        target_lang: str = "ru",
+        source_lang: str = "en",
+        provider_name: str = "google_direct",
+    ) -> str:
         """Translate text using the specified provider."""
         provider = ProviderRegistry.get(provider_name)
         return provider.translate(text, target_lang, source_lang)

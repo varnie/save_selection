@@ -5,8 +5,12 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from domain.entities import Word
-from domain.repositories import AbstractWordRepository, AbstractStatsRepository, AbstractSettingsRepository
-from domain.services import AbstractReviewService
+from domain.repositories import (
+    AbstractWordRepository,
+    AbstractStatsRepository,
+    AbstractSettingsRepository,
+)
+from application.service_interfaces import AbstractReviewService
 
 
 class ReviewService(AbstractReviewService):
@@ -23,13 +27,24 @@ class ReviewService(AbstractReviewService):
         self.settings_repo = settings_repo
 
     def _get_target_lang(self) -> str:
-        return self.settings_repo.get("target_lang").value if self.settings_repo.get("target_lang") else "ru"
+        setting = self.settings_repo.get("target_lang")
+        return setting.value if setting else "ru"
 
     def get_next_word(self) -> Optional[Word]:
         """Get next word due for review with translation in current target language."""
         target_lang = self._get_target_lang()
         words = self.word_repo.get_due(limit=10, target_lang=target_lang)
-        return words[0] if words else None
+
+        if not words:
+            return None
+
+        def sort_key(word: Word) -> tuple:
+            due_date = word.due_date if word.due_date else 0
+            interval = word.interval_days if word.interval_days else 1
+            return (due_date, interval)
+
+        sorted_words = sorted(words, key=sort_key)
+        return sorted_words[0]
 
     def review_word(self, word_id: int, quality: int = 3) -> None:
         """Review a word with SM-2 quality rating (0-5)."""
@@ -68,15 +83,15 @@ class ReviewService(AbstractReviewService):
     def skip_word(self, word_id: int) -> None:
         """Skip word - move to end of queue by updating due date."""
         self.stats_repo.record_review(word_id)
-        
+
         stats = self.stats_repo.get_word_stats(word_id)
         current_interval = stats.interval_days if stats else 1
-        
+        current_ease = stats.ease_factor if stats else 2.5
+
         new_due = int(datetime.now(timezone.utc).timestamp()) + 600
-        
+
         self.stats_repo.update_word_stats(
-            word_id, current_interval, new_due, 
-            stats.ease_factor if stats else 2.5
+            word_id, current_interval, new_due, current_ease
         )
 
     def get_stats(self) -> dict:

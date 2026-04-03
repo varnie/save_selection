@@ -5,7 +5,11 @@ from typing import Optional
 
 from domain.entities import Word
 from domain.repositories import AbstractSettingsRepository, AbstractWOTDRepository
-from domain.services import AbstractTranslationService, AbstractWordManagementService, AbstractWOTDService
+from application.service_interfaces import (
+    AbstractTranslationService,
+    AbstractWordManagementService,
+    AbstractWOTDService,
+)
 from wotd import get_word_source, WordSourceType
 
 
@@ -47,7 +51,7 @@ class WOTDService(AbstractWOTDService):
 
         level = self.get_wotd_level()
         source = get_word_source(WordSourceType.LOCAL)
-        
+
         word_data = source.get_word(level)
         if not word_data:
             return None
@@ -59,8 +63,10 @@ class WOTDService(AbstractWOTDService):
         source_lang = self._get_setting("source_lang", "en")
         target_lang = self._get_setting("target_lang", "ru")
 
-        translation = self.translation_service.translate(word, target_lang, source_lang, provider_name)
-        
+        translation = self.translation_service.translate(
+            word, target_lang, source_lang, provider_name
+        )
+
         if not translation:
             return None
 
@@ -69,10 +75,14 @@ class WOTDService(AbstractWOTDService):
         word_entity, success = self.save_wotd_to_vocab(word, translation)
         return word_entity
 
-    def save_wotd_to_vocab(self, word: str, translation: str = None) -> tuple[Optional[Word], bool]:
+    def save_wotd_to_vocab(
+        self, word: str, translation: Optional[str] = None
+    ) -> tuple[Optional[Word], bool]:
         """Save WOTD word to user's vocabulary."""
         try:
-            result = self.word_service.add_word(word, translation, auto_translate=(translation is None))
+            result = self.word_service.add_word(
+                word, translation, auto_translate=(translation is None)
+            )
             return result, True
         except Exception as e:
             print(f"Failed to save WOTD to vocab: {e}")

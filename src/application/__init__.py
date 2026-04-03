@@ -9,9 +9,20 @@ from constants import DEFAULT_DB_PATH, CONFIG_FILE
 from application.vocab_service import VocabService
 from repositories import (
     SQLiteDatabase,
-    WordRepository, StatsRepository, SettingsRepository, LanguageRepository, WOTDRepository,
+    WordRepository,
+    StatsRepository,
+    SettingsRepository,
+    LanguageRepository,
+    WOTDRepository,
 )
 from infrastructure.translation import TranslationServiceImpl
+from application.service_interfaces import (
+    AbstractTranslationService,
+    AbstractWordManagementService,
+    AbstractReviewService,
+    AbstractSettingsService,
+    AbstractWOTDService,
+)
 
 
 def get_db_path(config_file: str = CONFIG_FILE) -> str:
@@ -71,11 +82,16 @@ from application.settings_service import SettingsService
 from application.wotd_service import WOTDService
 
 __all__ = [
-    'VocabService',
-    'WordManagementService',
-    'ReviewService', 
-    'SettingsService',
-    'WOTDService',
-    'create_vocab_service',
-    'get_db_path',
+    "VocabService",
+    "WordManagementService",
+    "ReviewService",
+    "SettingsService",
+    "WOTDService",
+    "AbstractTranslationService",
+    "AbstractWordManagementService",
+    "AbstractReviewService",
+    "AbstractSettingsService",
+    "AbstractWOTDService",
+    "create_vocab_service",
+    "get_db_path",
 ]

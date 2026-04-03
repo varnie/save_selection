@@ -22,10 +22,10 @@ from windows.word_browser import WordBrowserWindow
 
 def _create_tray():
     if IS_MACOS:
-        from tray_macos import MacOSTray
+        from infrastructure.tray.tray_macos import MacOSTray
 
         return MacOSTray()
-    from tray_linux import LinuxTray
+    from infrastructure.tray.tray_linux import LinuxTray
 
     return LinuxTray()
 
@@ -85,7 +85,7 @@ class VocabApp(Gtk.Application):
         self.review_thread.start()
 
         if IS_LINUX:
-            from tray_linux import get_desktop_environment
+            from infrastructure.tray import get_desktop_environment
 
             if get_desktop_environment() in ("gnome", "ubuntu"):
                 if not self.vocab_service.get_setting("gnome_tray_warning_shown"):

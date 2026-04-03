@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Settings service - handles application settings."""
 
-import os
-
 from domain.repositories import AbstractSettingsRepository
-from domain.services import AbstractSettingsService
-from constants import AUTOSTART_DIR, AUTOSTART_FILE
+from application.service_interfaces import AbstractSettingsService
+from infrastructure.autostart import AutostartManager
 
 
 class SettingsService(AbstractSettingsService):
@@ -25,10 +23,11 @@ class SettingsService(AbstractSettingsService):
 
     def get_settings(self) -> dict:
         """Get app settings."""
+
         def get_val(key: str, default: str) -> str:
             setting = self.settings_repo.get(key)
             return setting.value if setting else default
-        
+
         return {
             "review_interval": int(get_val("review_interval", "3600")),
             "source_lang": get_val("source_lang", "en"),
@@ -40,33 +39,13 @@ class SettingsService(AbstractSettingsService):
         """Save app settings."""
         for key, value in settings.items():
             self.set_setting(key, str(value))
-        
+
         if "autostart" in settings:
             self._set_autostart(settings["autostart"] == "true")
 
     def _set_autostart(self, enable: bool) -> None:
         """Enable or disable autostart."""
         if enable:
-            os.makedirs(AUTOSTART_DIR, exist_ok=True)
-            script_path = os.path.dirname(os.path.abspath(__file__))
-            venv_python = os.path.join(os.path.dirname(script_path), "venv", "bin", "python3")
-            exec_path = os.path.join(script_path, "vocab_gui.py")
-            
-            if os.path.exists(venv_python):
-                python_exec = venv_python
-            else:
-                python_exec = "python3"
-            
-            desktop_content = f"""[Desktop Entry]
-Type=Application
-Name=Vocab App
-Exec={python_exec} {exec_path}
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-"""
-            with open(AUTOSTART_FILE, "w") as f:
-                f.write(desktop_content)
+            AutostartManager.enable()
         else:
-            if os.path.exists(AUTOSTART_FILE):
-                os.remove(AUTOSTART_FILE)
+            AutostartManager.disable()

@@ -4,10 +4,18 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from infrastructure.models import Setting as ORMSetting, Language as ORMLanguage, WOTDHistory as ORMWOTDHistory
+from infrastructure.models import (
+    Setting as ORMSetting,
+    Language as ORMLanguage,
+    WOTDHistory as ORMWOTDHistory,
+)
 from repositories.base import AbstractDatabase
-from domain.repositories import AbstractSettingsRepository, AbstractLanguageRepository, AbstractWOTDRepository
-from domain import mappers
+from domain.repositories import (
+    AbstractSettingsRepository,
+    AbstractLanguageRepository,
+    AbstractWOTDRepository,
+)
+from infrastructure import mappers
 from domain.entities import Setting, WOTDHistory as WOTDHistoryEntity, Language
 
 
@@ -68,7 +76,9 @@ class LanguageRepository(AbstractLanguageRepository):
             ("ko", "Korean", "KO"),
         ]
 
-        existing_codes = {lang.code for lang in self.db.session.query(ORMLanguage.code).all()}
+        existing_codes = {
+            lang.code for lang in self.db.session.query(ORMLanguage.code).all()
+        }
 
         for code, name, abbrev in default_languages:
             if code not in existing_codes:

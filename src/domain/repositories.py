@@ -5,7 +5,14 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from domain.entities import (
-    Word, Language, WordStats, Stats, Setting, WOTDHistory, Translation, History
+    Word,
+    Language,
+    WordStats,
+    Stats,
+    Setting,
+    WOTDHistory,
+    Translation,
+    History,
 )
 
 
@@ -28,12 +35,14 @@ class AbstractWordRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all(self, search: str = None, target_lang: str = None) -> list[Word]:
+    def get_all(
+        self, search: Optional[str] = None, target_lang: Optional[str] = None
+    ) -> list[Word]:
         """Get all words with stats."""
         pass
 
     @abstractmethod
-    def get_due(self, limit: int = 20, target_lang: str = None) -> list[Word]:
+    def get_due(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:
         """Get words due for review."""
         pass
 
@@ -43,12 +52,16 @@ class AbstractWordRepository(ABC):
         pass
 
     @abstractmethod
-    def add_translation(self, word_id: int, translation: str, target_lang: str = "ru") -> None:
+    def add_translation(
+        self, word_id: int, translation: str, target_lang: str = "ru"
+    ) -> None:
         """Add translation for a word."""
         pass
 
     @abstractmethod
-    def get_translation(self, word_id: int, target_lang: str = "ru") -> Optional[Translation]:
+    def get_translation(
+        self, word_id: int, target_lang: str = "ru"
+    ) -> Optional[Translation]:
         """Get translation for a word."""
         pass
 
@@ -72,7 +85,9 @@ class AbstractStatsRepository(ABC):
     """Abstract interface for statistics operations."""
 
     @abstractmethod
-    def update_word_stats(self, word_id: int, interval_days: int, due_date: int, ease_factor: float) -> None:
+    def update_word_stats(
+        self, word_id: int, interval_days: int, due_date: int, ease_factor: float
+    ) -> None:
         """Update word stats."""
         pass
 
@@ -101,7 +116,7 @@ class AbstractSettingsRepository(ABC):
     """Abstract interface for settings operations."""
 
     @abstractmethod
-    def get(self, key: str, default: str = None) -> Optional[Setting]:
+    def get(self, key: str, default: Optional[str] = None) -> Optional[Setting]:
         """Get a setting value."""
         pass
 

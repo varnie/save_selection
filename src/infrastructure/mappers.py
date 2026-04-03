@@ -3,10 +3,27 @@
 
 from typing import Any
 
-from infrastructure.models import Word as ORMWord, Translation as ORMTranslation, Language as ORMLanguage
-from infrastructure.models import WordStats as ORMWordStats, History as ORMHistory, WOTDHistory as ORMWOTDHistory
+from infrastructure.models import (
+    Word as ORMWord,
+    Translation as ORMTranslation,
+    Language as ORMLanguage,
+)
+from infrastructure.models import (
+    WordStats as ORMWordStats,
+    History as ORMHistory,
+    WOTDHistory as ORMWOTDHistory,
+)
 from infrastructure.models import Setting as ORMSetting
-from domain.entities import Word, Translation, Language, WordStats, History, WOTDHistory, Setting, Stats
+from domain.entities import (
+    Word,
+    Translation,
+    Language,
+    WordStats,
+    History,
+    WOTDHistory,
+    Setting,
+    Stats,
+)
 
 
 def map_word(orm: ORMWord) -> Word:
@@ -25,16 +42,18 @@ def map_word_with_details(orm: ORMWord) -> Word:
         phrase=orm.phrase,
         created_at=orm.created_at,
     )
-    
+
     if orm.translations:
         word.translation = orm.translations[0].translation
-        word.language_code = orm.translations[0].language.code if orm.translations[0].language else ""
-    
+        word.language_code = (
+            orm.translations[0].language.code if orm.translations[0].language else ""
+        )
+
     if orm.stats:
         word.interval_days = orm.stats.interval_days
         word.due_date = orm.stats.due_date
         word.ease_factor = orm.stats.ease_factor
-    
+
     return word
 
 
