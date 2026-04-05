@@ -1,18 +1,17 @@
-#!/usr/bin/env python3
 """Abstract repository interfaces - domain layer defines contracts."""
 
 from abc import ABC, abstractmethod
 from typing import Optional
 
 from domain.entities import (
-    Word,
-    Language,
-    WordStats,
-    Stats,
-    Setting,
-    WOTDHistory,
-    Translation,
     History,
+    Language,
+    Setting,
+    Stats,
+    Translation,
+    Word,
+    WordStats,
+    WOTDHistory,
 )
 
 
@@ -52,16 +51,12 @@ class AbstractWordRepository(ABC):
         pass
 
     @abstractmethod
-    def add_translation(
-        self, word_id: int, translation: str, target_lang: str = "ru"
-    ) -> None:
+    def add_translation(self, word_id: int, translation: str, target_lang: str = "ru") -> None:
         """Add translation for a word."""
         pass
 
     @abstractmethod
-    def get_translation(
-        self, word_id: int, target_lang: str = "ru"
-    ) -> Optional[Translation]:
+    def get_translation(self, word_id: int, target_lang: str = "ru") -> Optional[Translation]:
         """Get translation for a word."""
         pass
 

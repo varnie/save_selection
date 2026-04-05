@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Notification service - handles notification logic."""
 
 from typing import TYPE_CHECKING

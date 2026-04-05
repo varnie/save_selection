@@ -31,17 +31,13 @@ def run_cli():
             result = get_clipboard_text()
             if not result:
                 send_notification("No text selected")
-                return
+                return False
             phrase = result.strip().lower()
             word = vocab_service.add_word(phrase, auto_translate=True)
 
             translation, trans_lang = vocab_service.get_translation_with_lang(word.id)
             if translation:
-                abbrev = (
-                    vocab_service.get_language_abbreviation(trans_lang)
-                    if trans_lang
-                    else "—"
-                )
+                abbrev = vocab_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
                 send_notification(f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]")
             else:
                 send_notification(f"Word saved: {phrase[:30]}")

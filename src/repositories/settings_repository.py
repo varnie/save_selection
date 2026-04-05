@@ -1,22 +1,26 @@
-#!/usr/bin/env python3
 """Settings and WOTD repositories."""
 
 from datetime import datetime, timezone
 from typing import Optional
 
-from infrastructure.models import (
-    Setting as ORMSetting,
-    Language as ORMLanguage,
-    WOTDHistory as ORMWOTDHistory,
-)
-from repositories.base import AbstractDatabase
+from domain.entities import Language, Setting
+from domain.entities import WOTDHistory as WOTDHistoryEntity
 from domain.repositories import (
-    AbstractSettingsRepository,
     AbstractLanguageRepository,
+    AbstractSettingsRepository,
     AbstractWOTDRepository,
 )
 from infrastructure import mappers
-from domain.entities import Setting, WOTDHistory as WOTDHistoryEntity, Language
+from infrastructure.models import (
+    Language as ORMLanguage,
+)
+from infrastructure.models import (
+    Setting as ORMSetting,
+)
+from infrastructure.models import (
+    WOTDHistory as ORMWOTDHistory,
+)
+from repositories.base import AbstractDatabase
 
 
 class SettingsRepository(AbstractSettingsRepository):
@@ -25,7 +29,7 @@ class SettingsRepository(AbstractSettingsRepository):
     def __init__(self, db: AbstractDatabase):
         self.db = db
 
-    def get(self, key: str, default: str = None) -> Optional[Setting]:
+    def get(self, key: str, default: Optional[str] = None) -> Optional[Setting]:
         """Get a setting value as domain entity."""
         orm = self.db.session.query(ORMSetting).filter_by(key=key).first()
         if orm:
@@ -76,9 +80,7 @@ class LanguageRepository(AbstractLanguageRepository):
             ("ko", "Korean", "KO"),
         ]
 
-        existing_codes = {
-            lang.code for lang in self.db.session.query(ORMLanguage.code).all()
-        }
+        existing_codes = {lang.code for lang in self.db.session.query(ORMLanguage.code).all()}
 
         for code, name, abbrev in default_languages:
             if code not in existing_codes:

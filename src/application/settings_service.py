@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
 """Settings service - handles application settings."""
 
-from domain.repositories import AbstractSettingsRepository
 from application.service_interfaces import AbstractSettingsService
+from domain.repositories import AbstractSettingsRepository
 from infrastructure.autostart import AutostartManager
 
 
@@ -23,13 +22,16 @@ class SettingsService(AbstractSettingsService):
 
     def get_settings(self) -> dict:
         """Get app settings."""
+        review_interval = self.get_setting("review_interval")
+        source_lang = self.get_setting("source_lang")
+        target_lang = self.get_setting("target_lang")
+        translation_provider = self.get_setting("translation_provider")
+
         return {
-            "review_interval": int(self.get_setting("review_interval", "3600")),
-            "source_lang": self.get_setting("source_lang", "en"),
-            "target_lang": self.get_setting("target_lang", "ru"),
-            "translation_provider": self.get_setting(
-                "translation_provider", "google_direct"
-            ),
+            "review_interval": int(review_interval) if review_interval else 3600,
+            "source_lang": source_lang or "en",
+            "target_lang": target_lang or "ru",
+            "translation_provider": translation_provider or "google_direct",
         }
 
     def save_settings(self, settings: dict) -> None:

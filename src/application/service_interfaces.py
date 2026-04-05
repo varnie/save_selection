@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Abstract service interfaces - application layer defines contracts."""
 
 from abc import ABC, abstractmethod
@@ -48,9 +47,7 @@ class AbstractWordManagementService(ABC):
         pass
 
     @abstractmethod
-    def get_translation_with_lang(
-        self, word_id: int
-    ) -> tuple[Optional[str], Optional[str]]:
+    def get_translation_with_lang(self, word_id: int) -> tuple[Optional[str], Optional[str]]:
         """Get translation and its language code."""
         pass
 
@@ -60,9 +57,7 @@ class AbstractWordManagementService(ABC):
         pass
 
     @abstractmethod
-    def update_word(
-        self, word_id: int, phrase: str, translation: Optional[str] = None
-    ) -> None:
+    def update_word(self, word_id: int, phrase: str, translation: Optional[str] = None) -> None:
         """Update word phrase and optionally translation."""
         pass
 

@@ -1,15 +1,14 @@
-#!/usr/bin/env python3
 """Word management service - handles word CRUD operations."""
 
-from domain.entities import Word
-from domain.repositories import (
-    AbstractWordRepository,
-    AbstractLanguageRepository,
-    AbstractSettingsRepository,
-)
 from application.service_interfaces import (
     AbstractTranslationService,
     AbstractWordManagementService,
+)
+from domain.entities import Word
+from domain.repositories import (
+    AbstractLanguageRepository,
+    AbstractSettingsRepository,
+    AbstractWordRepository,
 )
 
 
@@ -32,25 +31,16 @@ class WordManagementService(AbstractWordManagementService):
         self.translation_service = translation_service
 
     def _get_target_lang(self) -> str:
-        return (
-            self.settings_repo.get("target_lang").value
-            if self.settings_repo.get("target_lang")
-            else "ru"
-        )
+        setting = self.settings_repo.get("target_lang")
+        return setting.value if setting else "ru"
 
     def _get_source_lang(self) -> str:
-        return (
-            self.settings_repo.get("source_lang").value
-            if self.settings_repo.get("source_lang")
-            else "en"
-        )
+        setting = self.settings_repo.get("source_lang")
+        return setting.value if setting else "en"
 
     def _get_translation_provider(self) -> str:
-        return (
-            self.settings_repo.get("translation_provider").value
-            if self.settings_repo.get("translation_provider")
-            else "google_direct"
-        )
+        setting = self.settings_repo.get("translation_provider")
+        return setting.value if setting else "google_direct"
 
     def add_word(
         self, phrase: str, translation: str | None = None, auto_translate: bool = False
@@ -63,11 +53,15 @@ class WordManagementService(AbstractWordManagementService):
 
         if len(phrase) < self.MIN_PHRASE_LENGTH or len(phrase) > self.MAX_PHRASE_LENGTH:
             raise ValueError(
-                f"Phrase length must be between {self.MIN_PHRASE_LENGTH} and {self.MAX_PHRASE_LENGTH}"
+                f"Phrase length must be {self.MIN_PHRASE_LENGTH}-{self.MAX_PHRASE_LENGTH}"
             )
 
         existing = self.word_repo.get_by_phrase(phrase)
-        word_id = existing.id if existing else self.word_repo.add(phrase).id
+        if existing:
+            word_id = existing.id
+        else:
+            new_word = self.word_repo.add(phrase)
+            word_id = new_word.id
 
         if translation or auto_translate:
             target_lang = self._get_target_lang()
@@ -82,11 +76,13 @@ class WordManagementService(AbstractWordManagementService):
                 if trans:
                     self.word_repo.add_translation(word_id, trans, target_lang)
 
-        return self.word_repo.get_by_phrase(phrase)
+        result = self.word_repo.get_by_phrase(phrase)
+        if result is None:
+            msg = f"Word not found after add: {phrase}"
+            raise RuntimeError(msg)
+        return result
 
-    def get_words(
-        self, search: str | None = None, target_lang: str | None = None
-    ) -> list[Word]:
+    def get_words(self, search: str | None = None, target_lang: str | None = None) -> list[Word]:
         """Get all words with optional search and language filter."""
         return self.word_repo.get_all(search, target_lang)
 
@@ -111,9 +107,7 @@ class WordManagementService(AbstractWordManagementService):
         lang = self.language_repo.get_by_code(lang_code)
         return lang.abbreviation if lang else lang_code.upper()
 
-    def update_word(
-        self, word_id: int, phrase: str, translation: str | None = None
-    ) -> None:
+    def update_word(self, word_id: int, phrase: str, translation: str | None = None) -> None:
         """Update word phrase and optionally translation."""
         if not phrase or not phrase.strip():
             raise ValueError("Phrase cannot be empty")
@@ -122,7 +116,7 @@ class WordManagementService(AbstractWordManagementService):
 
         if len(phrase) < self.MIN_PHRASE_LENGTH or len(phrase) > self.MAX_PHRASE_LENGTH:
             raise ValueError(
-                f"Phrase length must be between {self.MIN_PHRASE_LENGTH} and {self.MAX_PHRASE_LENGTH}"
+                f"Phrase length must be {self.MIN_PHRASE_LENGTH}-{self.MAX_PHRASE_LENGTH}"
             )
 
         self.word_repo.update_word(word_id, phrase)

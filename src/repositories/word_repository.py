@@ -1,22 +1,26 @@
-#!/usr/bin/env python3
 """Word repository - handles word CRUD operations."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
+from domain.entities import History, Stats, Translation, Word, WordStats
+from domain.repositories import AbstractStatsRepository, AbstractWordRepository
+from infrastructure import mappers
+from infrastructure.models import History as ORMHistory
 from infrastructure.models import (
-    Word as ORMWord,
-    Translation as ORMTranslation,
     Language as ORMLanguage,
 )
-from infrastructure.models import WordStats as ORMWordStats, History as ORMHistory
+from infrastructure.models import (
+    Translation as ORMTranslation,
+)
+from infrastructure.models import (
+    Word as ORMWord,
+)
+from infrastructure.models import WordStats as ORMWordStats
 from repositories.base import AbstractDatabase
-from domain.repositories import AbstractWordRepository, AbstractStatsRepository
-from domain.entities import Word, Translation, History, WordStats, Stats
-from infrastructure import mappers
 
 
 class WordRepository(AbstractWordRepository):
@@ -38,9 +42,7 @@ class WordRepository(AbstractWordRepository):
 
     def get_by_phrase(self, phrase: str) -> Optional[Word]:
         """Get word by phrase."""
-        orm_word = (
-            self.db.session.query(ORMWord).filter_by(phrase=phrase.lower()).first()
-        )
+        orm_word = self.db.session.query(ORMWord).filter_by(phrase=phrase.lower()).first()
         if not orm_word:
             return None
         return mappers.map_word_with_details(orm_word)
@@ -55,9 +57,7 @@ class WordRepository(AbstractWordRepository):
         """Get all words with stats."""
         lang = None
         if target_lang:
-            lang = (
-                self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
-            )
+            lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
             if not lang:
                 return []
 
@@ -69,8 +69,7 @@ class WordRepository(AbstractWordRepository):
         if lang:
             query = query.join(
                 ORMTranslation,
-                (ORMTranslation.word_id == ORMWord.id)
-                & (ORMTranslation.language_id == lang.id),
+                (ORMTranslation.word_id == ORMWord.id) & (ORMTranslation.language_id == lang.id),
             )
 
         if search:
@@ -93,19 +92,17 @@ class WordRepository(AbstractWordRepository):
         query = (
             self.db.session.query(ORMWord)
             .outerjoin(ORMWordStats)
-            .filter((ORMWordStats.due_date <= now_ts) | (ORMWordStats.due_date == None))
+            .filter((ORMWordStats.due_date <= now_ts) | (ORMWordStats.due_date.is_(None)))
         )
 
         if target_lang:
-            lang = (
-                self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
-            )
+            lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
             if lang:
                 query = query.outerjoin(
                     ORMTranslation,
                     (ORMWord.id == ORMTranslation.word_id)
                     & (ORMTranslation.language_id == lang.id),
-                ).filter(ORMTranslation.id != None)
+                ).filter(ORMTranslation.id.isnot(None))
             else:
                 return []
 
@@ -120,9 +117,7 @@ class WordRepository(AbstractWordRepository):
             self.db.session.delete(word)
             self.db.commit()
 
-    def add_translation(
-        self, word_id: int, translation: str, target_lang: str = "ru"
-    ) -> None:
+    def add_translation(self, word_id: int, translation: str, target_lang: str = "ru") -> None:
         """Add translation for a word."""
         lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
         if not lang:
@@ -137,16 +132,12 @@ class WordRepository(AbstractWordRepository):
         if existing:
             existing.translation = translation
         else:
-            trans = ORMTranslation(
-                word_id=word_id, translation=translation, language_id=lang.id
-            )
+            trans = ORMTranslation(word_id=word_id, translation=translation, language_id=lang.id)
             self.db.session.add(trans)
 
         self.db.commit()
 
-    def get_translation(
-        self, word_id: int, target_lang: str = "ru"
-    ) -> Optional[Translation]:
+    def get_translation(self, word_id: int, target_lang: str = "ru") -> Optional[Translation]:
         """Get translation for a word as domain entity."""
         lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
         if not lang:
@@ -236,15 +227,8 @@ class StatsRepository(AbstractStatsRepository):
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         today_start = int(datetime(now.year, now.month, now.day).timestamp())
 
-        word_ids_with_trans = (
-            self.db.session.query(ORMTranslation.word_id).distinct().subquery()
-        )
-
         total = (
-            self.db.session.query(func.count())
-            .select_from(word_ids_with_trans)
-            .scalar()
-            or 0
+            self.db.session.query(func.count(func.distinct(ORMTranslation.word_id))).scalar() or 0
         )
 
         today_words = (
@@ -273,29 +257,22 @@ class StatsRepository(AbstractStatsRepository):
             or 0
         )
 
-        short_interval = (
-            self.db.session.query(func.count(func.distinct(ORMWordStats.word_id)))
-            .join(ORMWord, ORMWordStats.word_id == ORMWord.id)
-            .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
-            .filter(ORMWordStats.interval_days <= 7)
-            .scalar()
-            or 0
-        )
+        def interval_count(op) -> int:
+            return (
+                self.db.session.query(func.count(func.distinct(ORMWordStats.word_id)))
+                .join(ORMWord, ORMWordStats.word_id == ORMWord.id)
+                .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
+                .filter(op)
+                .scalar()
+                or 0
+            )
 
-        long_interval = (
-            self.db.session.query(func.count(func.distinct(ORMWordStats.word_id)))
-            .join(ORMWord, ORMWordStats.word_id == ORMWord.id)
-            .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
-            .filter(ORMWordStats.interval_days > 7)
-            .scalar()
-            or 0
-        )
+        short_interval = interval_count(ORMWordStats.interval_days <= 7)
+        long_interval = interval_count(ORMWordStats.interval_days > 7)
 
         today_date = datetime.now(timezone.utc).date()
         rows = (
-            self.db.session.query(
-                func.date(ORMHistory.reviewed_at, "unixepoch").label("day")
-            )
+            self.db.session.query(func.date(ORMHistory.reviewed_at, "unixepoch").label("day"))
             .distinct()
             .order_by(func.date(ORMHistory.reviewed_at, "unixepoch").desc())
             .all()

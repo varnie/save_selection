@@ -3,8 +3,7 @@
 import os
 
 import objc
-from AppKit import (NSStatusBar, NSMenu, NSMenuItem, NSImage,
-                    NSVariableStatusItemLength)
+from AppKit import NSImage, NSMenu, NSMenuItem, NSStatusBar, NSVariableStatusItemLength
 from Foundation import NSObject
 from gi.repository import GLib
 
@@ -29,13 +28,11 @@ class _MenuDelegate(NSObject):
 
 
 class MacOSTray:
-
     def setup(self, callbacks):
         icon_path = os.path.join(ICONS_DIR, "tray_template.png")
 
         status_bar = NSStatusBar.systemStatusBar()
-        self._status_item = status_bar.statusItemWithLength_(
-            NSVariableStatusItemLength)
+        self._status_item = status_bar.statusItemWithLength_(NSVariableStatusItemLength)
 
         button = self._status_item.button()
         if os.path.exists(icon_path):
@@ -59,8 +56,9 @@ class MacOSTray:
                 title, key = item
                 tag_callbacks[action_index] = callbacks[key]
                 mi = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-                    title, "menuAction:", "")
-                mi.setTarget_(self._delegate if hasattr(self, '_delegate') else None)
+                    title, "menuAction:", ""
+                )
+                mi.setTarget_(self._delegate if hasattr(self, "_delegate") else None)
                 mi.setTag_(action_index)
                 mi.setEnabled_(True)
                 menu.addItem_(mi)

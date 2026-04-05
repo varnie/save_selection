@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 """WOTD service - handles Word of the Day functionality."""
 
 from typing import Optional
 
-from domain.entities import Word
-from domain.repositories import AbstractSettingsRepository, AbstractWOTDRepository
 from application.service_interfaces import (
     AbstractTranslationService,
     AbstractWordManagementService,
     AbstractWOTDService,
 )
-from wotd import get_word_source, WordSourceType
+from domain.entities import Word
+from domain.repositories import AbstractSettingsRepository, AbstractWOTDRepository
+from wotd import WordSourceType, get_word_source
 
 
 class WOTDService(AbstractWOTDService):
@@ -72,7 +71,7 @@ class WOTDService(AbstractWOTDService):
 
         self.wotd_repo.mark_shown(word, word_level)
 
-        word_entity, success = self.save_wotd_to_vocab(word, translation)
+        word_entity, _ = self.save_wotd_to_vocab(word, translation)
         return word_entity
 
     def save_wotd_to_vocab(

@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 """Review service - handles spaced repetition review logic."""
 
 from datetime import datetime, timezone
 from typing import Optional
 
+from application.service_interfaces import AbstractReviewService
 from domain.entities import Word
 from domain.repositories import (
-    AbstractWordRepository,
-    AbstractStatsRepository,
     AbstractSettingsRepository,
+    AbstractStatsRepository,
+    AbstractWordRepository,
 )
-from application.service_interfaces import AbstractReviewService
 
 
 class ReviewService(AbstractReviewService):
@@ -41,7 +40,7 @@ class ReviewService(AbstractReviewService):
         def sort_key(word: Word) -> tuple:
             due_date = word.due_date if word.due_date else 0
             interval = word.interval_days if word.interval_days else 1
-            return (due_date, interval)
+            return due_date, interval
 
         sorted_words = sorted(words, key=sort_key)
         return sorted_words[0]
@@ -90,9 +89,7 @@ class ReviewService(AbstractReviewService):
 
         new_due = int(datetime.now(timezone.utc).timestamp()) + 600
 
-        self.stats_repo.update_word_stats(
-            word_id, current_interval, new_due, current_ease
-        )
+        self.stats_repo.update_word_stats(word_id, current_interval, new_due, current_ease)
 
     def get_stats(self) -> dict:
         """Get statistics."""

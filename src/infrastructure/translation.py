@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
 """Translation providers."""
 
 from abc import ABC, abstractmethod
+from typing import ClassVar
+
 import requests
 
 from application.service_interfaces import AbstractTranslationService
@@ -11,9 +12,7 @@ class TranslationProvider(ABC):
     """Abstract base class for translation providers."""
 
     @abstractmethod
-    def translate(
-        self, text: str, target_lang: str = "ru", source_lang: str = "en"
-    ) -> str:
+    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
         """Translate text to target language."""
         pass
 
@@ -29,9 +28,7 @@ class GoogleDirectProvider(TranslationProvider):
     def __init__(self):
         self.base_url = "https://translate.googleapis.com/translate_a/single"
 
-    def translate(
-        self, text: str, target_lang: str = "ru", source_lang: str = "en"
-    ) -> str:
+    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
         """Translate text using Google Translate."""
         try:
             response = requests.get(
@@ -70,14 +67,14 @@ class GoogleDeepTranslatorProvider(TranslationProvider):
 
         self.translator = GoogleTranslator(source="en", target="ru")
 
-    def translate(
-        self, text: str, target_lang: str = "ru", source_lang: str = "en"
-    ) -> str:
+    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
         """Translate text using Google Translate via deep-translator."""
         try:
             self.translator.source = source_lang
             self.translator.target = target_lang
             result = self.translator.translate(text)
+            if isinstance(result, list):
+                result = result[0] if result else ""
             return result.strip() if result else ""
         except Exception as e:
             print(f"Translation error: {e}")
@@ -93,18 +90,16 @@ class EasyGoogleProvider(TranslationProvider):
     def __init__(self):
         from easygoogletranslate import EasyGoogleTranslate
 
-        self.translator = EasyGoogleTranslate(
-            source_language="en", target_language="ru"
-        )
+        self.translator = EasyGoogleTranslate(source_language="en", target_language="ru")
 
-    def translate(
-        self, text: str, target_lang: str = "ru", source_lang: str = "en"
-    ) -> str:
+    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
         """Translate text using easygoogletranslate."""
         try:
             self.translator.source_language = source_lang
             self.translator.target_language = target_lang
             result = self.translator.translate(text)
+            if isinstance(result, list):
+                result = result[0] if result else ""
             return result.strip() if result else ""
         except Exception as e:
             print(f"Translation error: {e}")
@@ -122,9 +117,7 @@ class MyMemoryProvider(TranslationProvider):
 
         self.translator = MyMemoryTranslator(source="en-US", target="ru-RU")
 
-    def translate(
-        self, text: str, target_lang: str = "ru", source_lang: str = "en"
-    ) -> str:
+    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
         """Translate text using MyMemory API."""
         try:
             lang_map = {
@@ -143,6 +136,8 @@ class MyMemoryProvider(TranslationProvider):
             self.translator.source = src_lang
             self.translator.target = tgt_lang
             result = self.translator.translate(text)
+            if isinstance(result, list):
+                result = result[0] if result else ""
             return result.strip() if result else ""
         except Exception as e:
             print(f"Translation error: {e}")
@@ -155,7 +150,7 @@ class MyMemoryProvider(TranslationProvider):
 class ProviderRegistry:
     """Registry of translation providers."""
 
-    _providers = {
+    _providers: ClassVar[dict[str, type[TranslationProvider]]] = {
         "google_direct": GoogleDirectProvider,
         "google_deep": GoogleDeepTranslatorProvider,
         "easygoogle": EasyGoogleProvider,
@@ -171,9 +166,9 @@ class ProviderRegistry:
         return GoogleDirectProvider()
 
     @classmethod
-    def list_providers(cls) -> list:
+    def list_providers(cls) -> list[tuple[str, str]]:
         """List available providers."""
-        return [(name, cls.get(name).get_name()) for name in cls._providers.keys()]
+        return [(name, cls.get(name).get_name()) for name in cls._providers]
 
 
 class TranslationServiceImpl(AbstractTranslationService):

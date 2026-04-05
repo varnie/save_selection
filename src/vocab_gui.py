@@ -9,14 +9,14 @@ import time
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gio
+from gi.repository import Gio, Gtk
 
-from constants import CONFIG_FILE, TEMP_PHRASE_FILE, IS_MACOS, IS_LINUX
 from application import create_vocab_service
+from constants import CONFIG_FILE, IS_LINUX, IS_MACOS, TEMP_PHRASE_FILE
 from infrastructure.notifications import send_notification
-from windows.stats import StatsWindow
-from windows.settings import SettingsWindow
 from windows.add_word import AddWordDialog
+from windows.settings import SettingsWindow
+from windows.stats import StatsWindow
 from windows.word_browser import WordBrowserWindow
 
 
@@ -87,13 +87,16 @@ class VocabApp(Gtk.Application):
         if IS_LINUX:
             from infrastructure.tray import get_desktop_environment
 
-            if get_desktop_environment() in ("gnome", "ubuntu"):
-                if not self.vocab_service.get_setting("gnome_tray_warning_shown"):
-                    self.notify(
-                        "GNOME detected. If tray icon is missing, install 'Top Icons' or 'Tray Icons' extension.",
-                        "Vocab",
-                    )
-                    self.vocab_service.set_setting("gnome_tray_warning_shown", "true")
+            if get_desktop_environment() in (
+                "gnome",
+                "ubuntu",
+            ) and not self.vocab_service.get_setting("gnome_tray_warning_shown"):
+                self.notify(
+                    "GNOME detected. If tray icon is missing, "
+                    "install 'Top Icons' or 'Tray Icons' extension.",
+                    "Vocab",
+                )
+                self.vocab_service.set_setting("gnome_tray_warning_shown", "true")
 
         threading.Timer(2.0, self.check_wotd).start()
 
@@ -119,7 +122,7 @@ class VocabApp(Gtk.Application):
         }
 
     def _open_window(self, key, create_fn):
-        if key in self._windows and self._windows[key]:
+        if self._windows.get(key):
             self._windows[key].present()
         else:
             win = create_fn()
@@ -131,7 +134,8 @@ class VocabApp(Gtk.Application):
         self._windows[key] = None
         return False
 
-    def notify(self, body: str, title: str = "Vocab") -> None:
+    @staticmethod
+    def notify(body: str, title: str = "Vocab") -> None:
         """Send notification with icon."""
         send_notification(body, title)
 
@@ -201,11 +205,7 @@ class VocabApp(Gtk.Application):
         else:
             interval_str = f"{interval // 365} yr"
 
-        abbrev = (
-            self.vocab_service.get_language_abbreviation(trans_lang)
-            if trans_lang
-            else "—"
-        )
+        abbrev = self.vocab_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
 
         body = f"<b>{word.phrase}</b> [{interval_str}]"
         if translation:
@@ -228,7 +228,8 @@ class VocabApp(Gtk.Application):
         finally:
             self.vocab_service.remove_session()
 
-    def _set_current_phrase(self, phrase: str) -> None:
+    @staticmethod
+    def _set_current_phrase(phrase: str) -> None:
         """Set current phrase for discard hotkey."""
         with open(TEMP_PHRASE_FILE, "w") as f:
             f.write(phrase)
@@ -288,9 +289,7 @@ class VocabApp(Gtk.Application):
 
         def create_window():
             win = SettingsWindow(self.vocab_service, config_file=self.config_file)
-            win.connect(
-                "delete-event", lambda w, e: self._on_window_closed("settings", w)
-            )
+            win.connect("delete-event", lambda w, e: self._on_window_closed("settings", w))
             return win
 
         self._open_window("settings", create_window)
@@ -300,9 +299,7 @@ class VocabApp(Gtk.Application):
 
         def create_window():
             win = WordBrowserWindow(self.vocab_service)
-            win.connect(
-                "delete-event", lambda w, e: self._on_window_closed("browser", w)
-            )
+            win.connect("delete-event", lambda w, e: self._on_window_closed("browser", w))
             return win
 
         self._open_window("browser", create_window)

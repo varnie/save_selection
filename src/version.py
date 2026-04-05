@@ -3,7 +3,7 @@
 
 import os
 
-VERSION_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "VERSION")
+VERSION_FILE = os.path.join(os.path.dirname(os.path.dirname(str(__file__))), "VERSION")
 
 
 def get_version():

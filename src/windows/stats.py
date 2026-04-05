@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
 """Stats window."""
 
 import gi
-gi.require_version('Gtk', '3.0')
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 
@@ -51,7 +51,7 @@ class StatsWindow(Gtk.Window):
 
         # Streak
         streak = stats.get("streak", 0)
-        streak_row = self._make_row(f"Streak:", f"{streak} days")
+        streak_row = self._make_row("Streak:", f"{streak} days")
         box.pack_start(streak_row, False, False, 0)
 
         # Separator
@@ -84,16 +84,16 @@ class StatsWindow(Gtk.Window):
     def _make_row(self, label: str, value: str) -> Gtk.Box:
         """Make a stat row."""
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        
+
         lbl = Gtk.Label(label)
         lbl.set_xalign(0)
         lbl.set_hexpand(True)
         box.pack_start(lbl, True, True, 0)
-        
+
         val = Gtk.Label(value)
         val.set_xalign(1)
         box.pack_start(val, False, False, 0)
-        
+
         return box
 
     def on_export(self, widget: Gtk.Widget) -> None:
@@ -102,7 +102,7 @@ class StatsWindow(Gtk.Window):
             "Export to CSV",
             self,
             Gtk.FileChooserAction.SAVE,
-            ("Cancel", Gtk.ResponseType.CANCEL, "Save", Gtk.ResponseType.OK)
+            ("Cancel", Gtk.ResponseType.CANCEL, "Save", Gtk.ResponseType.OK),
         )
         dialog.set_current_name("vocabulary.csv")
 
@@ -114,7 +114,7 @@ class StatsWindow(Gtk.Window):
                     Gtk.DialogFlags.DESTROY_WITH_PARENT,
                     Gtk.MessageType.INFO,
                     Gtk.ButtonsType.OK,
-                    "Export successful!"
+                    "Export successful!",
                 )
                 msg.run()
                 msg.destroy()
@@ -124,7 +124,7 @@ class StatsWindow(Gtk.Window):
                     Gtk.DialogFlags.DESTROY_WITH_PARENT,
                     Gtk.MessageType.ERROR,
                     Gtk.ButtonsType.OK,
-                    f"Export failed: {e}"
+                    f"Export failed: {e}",
                 )
                 msg.run()
                 msg.destroy()

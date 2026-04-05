@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Add word dialog."""
 
 import gi
@@ -47,30 +46,22 @@ class AddWordDialog(Gtk.Window):
 
         target_lang_name = target_language.name if target_language else target_lang_code
         target_lang_abbrev = (
-            target_language.abbreviation
-            if target_language
-            else target_lang_code.upper()
+            target_language.abbreviation if target_language else target_lang_code.upper()
         )
 
         source_lang_name = source_language.name if source_language else source_lang_code
         source_lang_abbrev = (
-            source_language.abbreviation
-            if source_language
-            else source_lang_code.upper()
+            source_language.abbreviation if source_language else source_lang_code.upper()
         )
 
         # Word entry with source language label
-        box.pack_start(
-            Gtk.Label(f"{source_lang_name} ({source_lang_abbrev}):"), False, False, 0
-        )
+        box.pack_start(Gtk.Label(f"{source_lang_name} ({source_lang_abbrev}):"), False, False, 0)
         self.word_entry = Gtk.Entry()
         self.word_entry.set_placeholder_text("Enter word or phrase")
         box.pack_start(self.word_entry, False, False, 0)
 
         # Translation entry with target language label
-        box.pack_start(
-            Gtk.Label(f"{target_lang_name} ({target_lang_abbrev}):"), False, False, 0
-        )
+        box.pack_start(Gtk.Label(f"{target_lang_name} ({target_lang_abbrev}):"), False, False, 0)
         self.translation_entry = Gtk.Entry()
         self.translation_entry.set_placeholder_text("Leave empty to auto-translate")
         box.pack_start(self.translation_entry, False, False, 0)

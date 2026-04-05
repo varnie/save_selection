@@ -1,28 +1,35 @@
-#!/usr/bin/env python3
 """Mappers for converting between ORM models and domain entities."""
 
 from typing import Any
 
+from domain.entities import (
+    History,
+    Language,
+    Setting,
+    Stats,
+    Translation,
+    Word,
+    WordStats,
+    WOTDHistory,
+)
+from infrastructure.models import (
+    History as ORMHistory,
+)
+from infrastructure.models import (
+    Language as ORMLanguage,
+)
+from infrastructure.models import Setting as ORMSetting
+from infrastructure.models import (
+    Translation as ORMTranslation,
+)
 from infrastructure.models import (
     Word as ORMWord,
-    Translation as ORMTranslation,
-    Language as ORMLanguage,
 )
 from infrastructure.models import (
     WordStats as ORMWordStats,
-    History as ORMHistory,
-    WOTDHistory as ORMWOTDHistory,
 )
-from infrastructure.models import Setting as ORMSetting
-from domain.entities import (
-    Word,
-    Translation,
-    Language,
-    WordStats,
-    History,
-    WOTDHistory,
-    Setting,
-    Stats,
+from infrastructure.models import (
+    WOTDHistory as ORMWOTDHistory,
 )
 
 

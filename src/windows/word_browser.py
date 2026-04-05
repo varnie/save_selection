@@ -1,22 +1,31 @@
-#!/usr/bin/env python3
 """Word browser window."""
 
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib
-
 from datetime import datetime, timezone
+
+from gi.repository import Gtk
+
+from domain.entities import Word
 
 
 class WordBrowserWindow(Gtk.Window):
     """Word browser and manager window."""
 
-    def __init__(self, vocab_service):
+    search_entry: Gtk.Entry
+    lang_combo: Gtk.ComboBoxText
+    model: Gtk.ListStore
+    treeview: Gtk.TreeView
+    delete_btn: Gtk.Button
+    status_label: Gtk.Label
+
+    def __init__(self, vocab_service) -> None:
         super().__init__(title="Word Browser")
         self.vocab_service = vocab_service
-        self.selected_word_id = None
-        self.words = []
+        self.selected_word_id: int | None = None
+        self.words: list[Word] = []
+        self._updating_model: bool = False
         self.set_default_size(910, 600)
         self.set_position(Gtk.WindowPosition.CENTER)
 
@@ -55,19 +64,15 @@ class WordBrowserWindow(Gtk.Window):
         lang_counts = self.vocab_service.get_language_counts()
 
         # Current language count
-        current_count = (
-            lang_counts.get(current_lang, (None, 0))[1] if current_lang else 0
-        )
+        current_count = lang_counts.get(current_lang, (None, 0))[1] if current_lang else 0
 
         # Only add current language if it has words
         if current_count > 0:
-            self.lang_combo.append(
-                current_lang, f"{current_lang.upper()} ({current_count})"
-            )
+            self.lang_combo.append(current_lang, f"{current_lang.upper()} ({current_count})")
 
         # Sort languages alphabetically and add with counts
         languages = self.vocab_service.get_languages()
-        sorted_languages = sorted(languages, key=lambda l: l.name)
+        sorted_languages = sorted(languages, key=lambda lang: lang.name)
 
         for lang in sorted_languages:
             if lang.code == current_lang:
@@ -237,9 +242,7 @@ class WordBrowserWindow(Gtk.Window):
             return
 
         # Get current language from dropdown
-        current_lang = (
-            self.lang_combo.get_active_id() if self.lang_combo.get_model() else None
-        )
+        current_lang = self.lang_combo.get_active_id() if self.lang_combo.get_model() else None
 
         # Confirm dialog
         dialog = Gtk.MessageDialog(
@@ -264,9 +267,7 @@ class WordBrowserWindow(Gtk.Window):
         lang_counts = self.vocab_service.get_language_counts()
 
         # Preserve current selection before rebuilding
-        selected_lang = (
-            self.lang_combo.get_active_id() if self.lang_combo.get_model() else None
-        )
+        selected_lang = self.lang_combo.get_active_id() if self.lang_combo.get_model() else None
         if not selected_lang:
             settings = self.vocab_service.get_settings()
             selected_lang = settings.get("target_lang", "ru")
@@ -277,16 +278,12 @@ class WordBrowserWindow(Gtk.Window):
         self.lang_combo.remove_all()
 
         # Add selected language first (only if has words)
-        selected_count = (
-            lang_counts.get(selected_lang, (None, 0))[1] if selected_lang else 0
-        )
+        selected_count = lang_counts.get(selected_lang, (None, 0))[1] if selected_lang else 0
         if selected_count > 0:
-            self.lang_combo.append(
-                selected_lang, f"{selected_lang.upper()} ({selected_count})"
-            )
+            self.lang_combo.append(selected_lang, f"{selected_lang.upper()} ({selected_count})")
 
         # Add other languages
-        sorted_languages = sorted(languages, key=lambda l: l.name)
+        sorted_languages = sorted(languages, key=lambda lang: lang.name)
         for lang in sorted_languages:
             if lang.code == selected_lang:
                 continue
@@ -300,7 +297,7 @@ class WordBrowserWindow(Gtk.Window):
         # Reload words with the selected language
         self.load_words()
 
-    def show_edit_dialog(self, word) -> None:
+    def show_edit_dialog(self, word: Word) -> None:
         """Show edit dialog for a word."""
         dialog = Gtk.Dialog(
             "Edit Word",

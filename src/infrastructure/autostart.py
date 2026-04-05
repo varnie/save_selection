@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Autostart management service."""
 
 import os
@@ -23,10 +22,7 @@ class AutostartManager:
         venv_python = os.path.join(src_dir, "venv", "bin", "python3")
         exec_path = os.path.join(current_dir, "vocab_gui.py")
 
-        if os.path.exists(venv_python):
-            python_exec = venv_python
-        else:
-            python_exec = "python3"
+        python_exec = venv_python if os.path.exists(venv_python) else "python3"
 
         os.makedirs(AUTOSTART_DIR, exist_ok=True)
 

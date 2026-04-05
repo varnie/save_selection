@@ -4,16 +4,17 @@ import os
 
 import gi
 
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GdkPixbuf
+gi.require_version("Gtk", "3.0")
+from gi.repository import GdkPixbuf, Gtk
 
 from constants import ICONS_DIR, MENU_ITEMS
 
 # Try AppIndicator3
 _has_appindicator = False
 try:
-    gi.require_version('AppIndicator3', '0.1')
+    gi.require_version("AppIndicator3", "0.1")
     from gi.repository import AppIndicator3
+
     _has_appindicator = True
 except (ValueError, ImportError):
     pass
@@ -28,6 +29,11 @@ def get_desktop_environment():
 
 
 class LinuxTray:
+    _indicator: AppIndicator3.Indicator | None
+    _status_icon: Gtk.StatusIcon | None
+    _gtk_menu: Gtk.Menu | None
+    _pause_item: Gtk.MenuItem | None
+    _callbacks: dict
 
     def setup(self, callbacks):
         tray_icon_path = os.path.join(ICONS_DIR, "tray_text.svg")
@@ -37,17 +43,15 @@ class LinuxTray:
         if _has_appindicator:
             self._indicator = AppIndicator3.Indicator.new(
                 "vocab-app",
-                tray_icon_path if os.path.exists(tray_icon_path)
-                else "dialog-information",
-                AppIndicator3.IndicatorCategory.SYSTEM_SERVICES
+                tray_icon_path if os.path.exists(tray_icon_path) else "dialog-information",
+                AppIndicator3.IndicatorCategory.SYSTEM_SERVICES,
             )
             self._indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
             self._indicator.set_menu(menu)
         else:
             self._status_icon = Gtk.StatusIcon()
             if os.path.exists(tray_icon_path):
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                    tray_icon_path, 22, 22)
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(tray_icon_path, 22, 22)
                 self._status_icon.set_from_pixbuf(pixbuf)
             else:
                 self._status_icon.set_from_icon_name("dialog-information")
@@ -73,17 +77,15 @@ class LinuxTray:
         return menu
 
     def _on_popup(self, icon, button, activate_time):
-        self._gtk_menu.popup(
-            None, None, Gtk.StatusIcon.position_menu,
-            icon, button, activate_time)
+        self._gtk_menu.popup(None, None, Gtk.StatusIcon.position_menu, icon, button, activate_time)
 
     def _on_activate(self, icon):
         self._gtk_menu.popup(
-            None, None, Gtk.StatusIcon.position_menu,
-            icon, 1, Gtk.get_current_event_time())
+            None, None, Gtk.StatusIcon.position_menu, icon, 1, Gtk.get_current_event_time()
+        )
 
     def set_label(self, text):
-        if _has_appindicator and hasattr(self, '_indicator'):
+        if _has_appindicator and hasattr(self, "_indicator"):
             self._indicator.set_label(text, "vocab-app")
 
     def set_pause_label(self, label):

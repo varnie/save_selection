@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Config helpers."""
 
-import os
 import json
+import os
 
 
 def read_config(config_file: str) -> dict:

@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 """Unit of Work pattern for transactional operations."""
 
-from typing import Optional, Any
+from typing import Any, Optional
 
 from repositories.base import AbstractDatabase
 
@@ -22,9 +21,7 @@ class UnitOfWork:
         exc_val: Optional[Exception],
         exc_tb: Optional[Any],
     ) -> None:
-        if exc_type is not None:
-            self._db.rollback()
-        elif not self._committed:
+        if exc_type is not None or not self._committed:
             self._db.rollback()
 
     def commit(self) -> None:

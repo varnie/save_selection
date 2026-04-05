@@ -1,12 +1,16 @@
-#!/usr/bin/env python3
 """Database abstraction - DB-agnostic interface."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, ClassVar
 
 
 class AbstractDatabase(ABC):
     """Abstract database interface."""
+
+    @abstractmethod
+    def __init__(self, **kwargs: object) -> None:
+        """Initialize database with optional configuration."""
+        pass
 
     @abstractmethod
     def connect(self) -> None:
@@ -43,7 +47,7 @@ class AbstractDatabase(ABC):
 class DatabaseFactory:
     """Factory for creating database instances."""
 
-    _implementations = {}
+    _implementations: ClassVar[dict[str, type[AbstractDatabase]]] = {}
 
     @classmethod
     def register(cls, name: str, db_class: type[AbstractDatabase]) -> None:
@@ -54,5 +58,7 @@ class DatabaseFactory:
     def create(cls, name: str, **kwargs) -> AbstractDatabase:
         """Create a database instance by name."""
         if name not in cls._implementations:
-            raise ValueError(f"Unknown database: {name}. Available: {list(cls._implementations.keys())}")
+            raise ValueError(
+                f"Unknown database: {name}. Available: {list(cls._implementations.keys())}"
+            )
         return cls._implementations[name](**kwargs)

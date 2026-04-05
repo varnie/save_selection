@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Settings window."""
 
 import os
@@ -7,15 +6,13 @@ import plistlib
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib
+from gi.repository import GLib, Gtk
 
-from infrastructure.translation import ProviderRegistry
 from config import read_config, write_config
 from constants import AUTOSTART_DIR, AUTOSTART_FILE, DEFAULT_DATA_DIR, IS_MACOS
-from wotd import CEFR_LEVELS
-
-
+from infrastructure.translation import ProviderRegistry
 from version import get_version
+from wotd import CEFR_LEVELS
 
 
 def _get_autostart_enabled() -> bool:
@@ -28,12 +25,10 @@ def _set_autostart(enabled: bool):
     if enabled:
         os.makedirs(AUTOSTART_DIR, exist_ok=True)
         script_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vocab_gui.py"
+            os.path.dirname(os.path.dirname(os.path.abspath(str(__file__)))), "vocab_gui.py"
         )
         python_path = os.path.join(
-            os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            ),
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(str(__file__))))),
             "venv",
             "bin",
             "python3",
@@ -61,9 +56,8 @@ X-GNOME-Autostart-enabled=true
 """
             with open(AUTOSTART_FILE, "w") as f:
                 f.write(desktop_entry)
-    else:
-        if os.path.exists(AUTOSTART_FILE):
-            os.remove(AUTOSTART_FILE)
+    elif os.path.exists(AUTOSTART_FILE):
+        os.remove(AUTOSTART_FILE)
 
 
 class SettingsWindow(Gtk.Window):
@@ -105,9 +99,7 @@ class SettingsWindow(Gtk.Window):
         ]
         for value, label in intervals:
             self.interval_combo.append(value, label)
-        current_interval = str(
-            self.vocab_service.get_settings().get("review_interval", "3600")
-        )
+        current_interval = str(self.vocab_service.get_settings().get("review_interval", "3600"))
         self.interval_combo.set_active_id(current_interval)
         interval_box.pack_end(self.interval_combo, False, False, 0)
 
@@ -188,9 +180,17 @@ class SettingsWindow(Gtk.Window):
 
         # Info label - platform-specific instructions
         if IS_MACOS:
-            shortcut_info = "Configure hotkeys in System Settings → Keyboard → Shortcuts → Services\nor use a tool like Hammerspoon / Karabiner.\n\nCommands:"
+            shortcut_info = (
+                "Configure hotkeys in System Settings → Keyboard → Shortcuts → Services\n"
+                "or use a tool like Hammerspoon / Karabiner.\n\n"
+                "Commands:"
+            )
         else:
-            shortcut_info = "Configure hotkeys in your desktop environment:\n(Usually Settings → Keyboard → Shortcuts)\n\nCommands:"
+            shortcut_info = (
+                "Configure hotkeys in your desktop environment:\n"
+                "(Usually Settings → Keyboard → Shortcuts)\n\n"
+                "Commands:"
+            )
         info_label = Gtk.Label(shortcut_info)
         info_label.set_xalign(0)
         info_label.set_line_wrap(True)
@@ -201,7 +201,9 @@ class SettingsWindow(Gtk.Window):
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vocab_cli.py"
         )
         cmds_label = Gtk.Label(
-            f"Save selected:   python3 {cli_path} --save\nDelete current: python3 {cli_path} --delete\nShow next:      python3 {cli_path} --next"
+            f"Save selected:   python3 {cli_path} --save\n"
+            f"Delete current: python3 {cli_path} --delete\n"
+            f"Show next:      python3 {cli_path} --next"
         )
         cmds_label.set_xalign(0)
         cmds_label.set_line_wrap(True)
@@ -380,7 +382,10 @@ class SettingsWindow(Gtk.Window):
 
         # Show confirmation
         if data_dir_changed:
-            msg_text = "Settings saved!\n\nNote: You need to restart the app for data directory changes to take effect."
+            msg_text = (
+                "Settings saved!\n\n"
+                "Note: You need to restart the app for data directory changes to take effect."
+            )
         else:
             msg_text = "Settings saved successfully!"
 

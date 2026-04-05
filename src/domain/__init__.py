@@ -1,36 +1,35 @@
-#!/usr/bin/env python3
 """Domain layer - pure business entities and repository interfaces."""
 
 from domain.entities import (
-    Word,
-    Translation,
-    Language,
-    WordStats,
     History,
-    WOTDHistory,
+    Language,
     Setting,
     Stats,
+    Translation,
+    Word,
+    WordStats,
+    WOTDHistory,
 )
 from domain.repositories import (
-    AbstractWordRepository,
-    AbstractStatsRepository,
-    AbstractSettingsRepository,
     AbstractLanguageRepository,
+    AbstractSettingsRepository,
+    AbstractStatsRepository,
+    AbstractWordRepository,
     AbstractWOTDRepository,
 )
 
 __all__ = [
-    "Word",
-    "Translation",
-    "Language",
-    "WordStats",
+    "AbstractLanguageRepository",
+    "AbstractSettingsRepository",
+    "AbstractStatsRepository",
+    "AbstractWOTDRepository",
+    "AbstractWordRepository",
     "History",
-    "WOTDHistory",
+    "Language",
     "Setting",
     "Stats",
-    "AbstractWordRepository",
-    "AbstractStatsRepository",
-    "AbstractSettingsRepository",
-    "AbstractLanguageRepository",
-    "AbstractWOTDRepository",
+    "Translation",
+    "WOTDHistory",
+    "Word",
+    "WordStats",
 ]

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Domain entities - pure Python dataclasses, no framework dependencies."""
 
 from dataclasses import dataclass
@@ -7,6 +6,7 @@ from dataclasses import dataclass
 @dataclass
 class Word:
     """Domain entity for a vocabulary word."""
+
     id: int = 0
     phrase: str = ""
     created_at: int = 0
@@ -20,6 +20,7 @@ class Word:
 @dataclass
 class Translation:
     """Domain entity for a translation."""
+
     id: int = 0
     word_id: int = 0
     translation: str = ""
@@ -30,6 +31,7 @@ class Translation:
 @dataclass
 class Language:
     """Domain entity for a language."""
+
     id: int = 0
     code: str = ""
     name: str = ""
@@ -39,6 +41,7 @@ class Language:
 @dataclass
 class WordStats:
     """Domain entity for word learning statistics."""
+
     id: int = 0
     word_id: int = 0
     interval_days: int = 1
@@ -50,6 +53,7 @@ class WordStats:
 @dataclass
 class History:
     """Domain entity for review history."""
+
     id: int = 0
     word_id: int = 0
     reviewed_at: int = 0
@@ -58,6 +62,7 @@ class History:
 @dataclass
 class WOTDHistory:
     """Domain entity for Word of the Day history."""
+
     id: int = 0
     word: str = ""
     level: str = ""
@@ -68,6 +73,7 @@ class WOTDHistory:
 @dataclass
 class Setting:
     """Domain entity for application settings."""
+
     key: str = ""
     value: str = ""
 
@@ -75,6 +81,7 @@ class Setting:
 @dataclass
 class Stats:
     """Domain entity for overall statistics."""
+
     total_words: int = 0
     today_words: int = 0
     today_reviews: int = 0

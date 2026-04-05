@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 """Translation test service - handles translation API testing."""
-
-from typing import Optional
 
 from application.service_interfaces import AbstractTranslationService
 

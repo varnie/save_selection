@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Word of the Day word sources."""
 
 import json
@@ -23,7 +22,7 @@ class WordSource(ABC):
     @abstractmethod
     def get_word(self, level: str) -> Optional[dict]:
         """Get a random word for the given level.
-        
+
         Returns:
             dict with 'word' and 'level' keys, or None if no word available
         """
@@ -45,9 +44,9 @@ class LocalWordSource(WordSource):
         """Load words from JSON file."""
         base_path = os.path.dirname(os.path.abspath(__file__))
         json_path = os.path.join(base_path, "data", "wotd_words.json")
-        
+
         try:
-            with open(json_path, 'r') as f:
+            with open(json_path) as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             return {}
@@ -56,11 +55,11 @@ class LocalWordSource(WordSource):
         """Get a random word for the given level."""
         level = level.upper()
         words = self.words.get(level, [])
-        
+
         if not words:
             return None
-        
-        word = random.choice(words)
+
+        word = random.choice(words)  # noqa: S311 - not cryptographic, just word selection
         return {"word": word, "level": level}
 
     def get_available_levels(self) -> list[str]:
@@ -70,7 +69,7 @@ class LocalWordSource(WordSource):
 
 class OnlineWordSource(WordSource):
     """Online word source - placeholder for future implementation.
-    
+
     This will fetch random words from external APIs when implemented.
     Currently returns None as no API is configured.
     """
@@ -79,14 +78,14 @@ class OnlineWordSource(WordSource):
         self.api_url = None
         self.api_key = None
 
-    def configure(self, api_url: str, api_key: str = None):
+    def configure(self, api_url: str, api_key: Optional[str] = None):
         """Configure the online source."""
         self.api_url = api_url
         self.api_key = api_key
 
     def get_word(self, level: str) -> Optional[dict]:
         """Get a random word from online source.
-        
+
         Note: Not yet implemented - returns None.
         """
         return None
@@ -98,10 +97,10 @@ class OnlineWordSource(WordSource):
 
 def get_word_source(source_type: WordSourceType = WordSourceType.LOCAL) -> WordSource:
     """Factory function to get a word source.
-    
+
     Args:
         source_type: WordSourceType enum value
-    
+
     Returns:
         WordSource instance
     """

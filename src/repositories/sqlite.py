@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
 """SQLite implementation of database abstraction."""
 
 from typing import Any
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session, scoped_session
+from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 from infrastructure.models import Base
 from repositories.base import AbstractDatabase as BaseDatabase
