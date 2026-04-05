@@ -64,11 +64,8 @@ class VocabService:
         )
 
         self.notification_service = NotificationService(
-            get_next_word_fn=self.get_next_word,
-            get_translation_fn=self.get_translation_with_lang,
-            skip_word_fn=self.skip_word,
-            format_interval_fn=self.format_interval,
-            get_lang_abbrev_fn=self.get_language_abbreviation,
+            review_service=self.review_service,
+            word_service=self.word_service,
         )
 
         self.translation_test_service = TranslationTestService(self.translation_service)

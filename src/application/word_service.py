@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Word management service - handles word CRUD operations."""
 
-from typing import Optional
-
 from domain.entities import Word
 from domain.repositories import (
     AbstractWordRepository,
@@ -69,12 +67,12 @@ class WordManagementService(AbstractWordManagementService):
             )
 
         existing = self.word_repo.get_by_phrase(phrase)
+        word_id = existing.id if existing else self.word_repo.add(phrase).id
 
-        if existing:
+        if translation or auto_translate:
             target_lang = self._get_target_lang()
-
             if translation:
-                self.word_repo.add_translation(existing.id, translation, target_lang)
+                self.word_repo.add_translation(word_id, translation, target_lang)
             elif auto_translate:
                 provider_name = self._get_translation_provider()
                 source_lang = self._get_source_lang()
@@ -82,23 +80,7 @@ class WordManagementService(AbstractWordManagementService):
                     phrase, target_lang, source_lang, provider_name
                 )
                 if trans:
-                    self.word_repo.add_translation(existing.id, trans, target_lang)
-            return self.word_repo.get_by_phrase(phrase)
-
-        word_entity = self.word_repo.add(phrase)
-
-        if translation:
-            target_lang = self._get_target_lang()
-            self.word_repo.add_translation(word_entity.id, translation, target_lang)
-        elif auto_translate:
-            provider_name = self._get_translation_provider()
-            source_lang = self._get_source_lang()
-            target_lang = self._get_target_lang()
-            trans = self.translation_service.translate(
-                phrase, target_lang, source_lang, provider_name
-            )
-            if trans:
-                self.word_repo.add_translation(word_entity.id, trans, target_lang)
+                    self.word_repo.add_translation(word_id, trans, target_lang)
 
         return self.word_repo.get_by_phrase(phrase)
 
@@ -108,19 +90,17 @@ class WordManagementService(AbstractWordManagementService):
         """Get all words with optional search and language filter."""
         return self.word_repo.get_all(search, target_lang)
 
-    def get_word(self, phrase: str) -> Optional[Word]:
+    def get_word(self, phrase: str) -> Word | None:
         """Get word by phrase."""
         return self.word_repo.get_by_phrase(phrase)
 
-    def get_translation(self, word_id: int) -> Optional[str]:
+    def get_translation(self, word_id: int) -> str | None:
         """Get translation for a word."""
         target_lang = self._get_target_lang()
         translation = self.word_repo.get_translation(word_id, target_lang)
         return translation.translation if translation else None
 
-    def get_translation_with_lang(
-        self, word_id: int
-    ) -> tuple[Optional[str], Optional[str]]:
+    def get_translation_with_lang(self, word_id: int) -> tuple[str | None, str | None]:
         """Get translation and its language code."""
         target_lang = self._get_target_lang()
         translation = self.word_repo.get_translation(word_id, target_lang)

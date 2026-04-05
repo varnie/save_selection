@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Notification service - handles notification logic."""
 
-from typing import Callable, Optional
+from typing import TYPE_CHECKING
 
 from constants import TEMP_PHRASE_FILE
+
+if TYPE_CHECKING:
+    from application.review_service import ReviewService
+    from application.word_service import WordManagementService
 
 
 class NotificationService:
@@ -11,31 +15,25 @@ class NotificationService:
 
     def __init__(
         self,
-        get_next_word_fn: Callable[[], Optional[object]],
-        get_translation_fn: Callable[[int], tuple[Optional[str], Optional[str]]],
-        skip_word_fn: Callable[[int], None],
-        format_interval_fn: Callable[[int], str],
-        get_lang_abbrev_fn: Callable[[str], str],
+        review_service: "ReviewService",
+        word_service: "WordManagementService",
     ):
-        self._get_next_word = get_next_word_fn
-        self._get_translation = get_translation_fn
-        self._skip_word = skip_word_fn
-        self._format_interval = format_interval_fn
-        self._get_lang_abbrev = get_lang_abbrev_fn
+        self._review = review_service
+        self._word = word_service
 
-    def get_next_word_notification(self) -> Optional[str]:
+    def get_next_word_notification(self) -> str | None:
         """Get next word notification body."""
-        word = self._get_next_word()
+        word = self._review.get_next_word()
         if not word:
             return None
 
         phrase = word.phrase
         interval = word.interval_days
 
-        translation, trans_lang = self._get_translation(word.id)
+        translation, trans_lang = self._word.get_translation_with_lang(word.id)
 
-        interval_str = self._format_interval(interval)
-        abbrev = self._get_lang_abbrev(trans_lang) if trans_lang else "—"
+        interval_str = self._review.format_interval(interval)
+        abbrev = self._word.get_language_abbreviation(trans_lang) if trans_lang else "—"
 
         body = f"<b>{phrase}</b> [{interval_str}]"
         if translation:
@@ -44,6 +42,6 @@ class NotificationService:
         with open(TEMP_PHRASE_FILE, "w") as f:
             f.write(phrase)
 
-        self._skip_word(word.id)
+        self._review.skip_word(word.id)
 
         return body

@@ -16,7 +16,7 @@ class TranslationTestService:
         """Test translation API with a simple query."""
         try:
             result = self._translation_service.translate(
-                "hello", target_lang, source_lang
+                "hello", target_lang or "ru", source_lang or "en"
             )
             return bool(result)
         except Exception:

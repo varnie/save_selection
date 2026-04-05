@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Word repository - handles word CRUD operations."""
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import func

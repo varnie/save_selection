@@ -23,16 +23,13 @@ class SettingsService(AbstractSettingsService):
 
     def get_settings(self) -> dict:
         """Get app settings."""
-
-        def get_val(key: str, default: str) -> str:
-            setting = self.settings_repo.get(key)
-            return setting.value if setting else default
-
         return {
-            "review_interval": int(get_val("review_interval", "3600")),
-            "source_lang": get_val("source_lang", "en"),
-            "target_lang": get_val("target_lang", "ru"),
-            "translation_provider": get_val("translation_provider", "google_direct"),
+            "review_interval": int(self.get_setting("review_interval", "3600")),
+            "source_lang": self.get_setting("source_lang", "en"),
+            "target_lang": self.get_setting("target_lang", "ru"),
+            "translation_provider": self.get_setting(
+                "translation_provider", "google_direct"
+            ),
         }
 
     def save_settings(self, settings: dict) -> None:
