@@ -107,19 +107,22 @@ Configure via System Settings → Keyboard → Shortcuts → Services, or use to
 
 ## Spaced Repetition
 
-Uses the **SM-2 algorithm**:
+### Current Implementation
 
+Words are selected for review based on **review count** (ascending order):
+- Words shown fewer times appear first in the queue
+- Words shown many times naturally sink to the bottom
+- This ensures variety and prevents the same words from appearing repeatedly
+
+### SM-2 Algorithm (Future Enhancement)
+
+The full SM-2 algorithm is partially implemented but requires user quality feedback:
 - **First review**: 1 day interval
 - **Subsequent reviews**: `interval × ease_factor` (default 2.5x)
 - **Ease factor**: Increases slightly with each review (minimum 1.3)
 - **Maximum interval**: 180 days (≈6 months)
 
-### Word Selection
-
-Words are selected for review based on **review count** (ascending order):
-- Words shown fewer times appear first
-- Words shown many times naturally sink to the bottom
-- This ensures variety and prevents the same words from appearing repeatedly
+To enable interval-based scheduling, quality rating buttons would need to be added to the UI.
 
 ## Troubleshooting
 
