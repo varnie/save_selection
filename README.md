@@ -114,6 +114,13 @@ Uses the **SM-2 algorithm**:
 - **Ease factor**: Increases slightly with each review (minimum 1.3)
 - **Maximum interval**: 180 days (≈6 months)
 
+### Word Selection
+
+Words are selected for review based on **review count** (ascending order):
+- Words shown fewer times appear first
+- Words shown many times naturally sink to the bottom
+- This ensures variety and prevents the same words from appearing repeatedly
+
 ## Troubleshooting
 
 ### Linux

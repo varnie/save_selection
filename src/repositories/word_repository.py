@@ -86,13 +86,20 @@ class WordRepository(AbstractWordRepository):
         return [mappers.map_word_with_details(w) for w in orm_words]
 
     def get_due(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:
-        """Get words due for review (due_date <= now)."""
+        """Get words due for review (due_date <= now), sorted by review count ascending."""
         now_ts = int(datetime.now(timezone.utc).timestamp())
 
+        review_count = func.count(ORMHistory.id).label("review_count")
+
         query = (
-            self.db.session.query(ORMWord)
+            self.db.session.query(ORMWord, review_count)
             .outerjoin(ORMWordStats)
+            .outerjoin(ORMHistory, ORMWord.id == ORMHistory.word_id)
             .filter((ORMWordStats.due_date <= now_ts) | (ORMWordStats.due_date.is_(None)))
+            .group_by(ORMWord.id)
+            .order_by(
+                func.count(ORMHistory.id).asc(), func.coalesce(ORMWordStats.due_date, 0).asc()
+            )
         )
 
         if target_lang:
@@ -106,9 +113,9 @@ class WordRepository(AbstractWordRepository):
             else:
                 return []
 
-        words = query.limit(limit).all()
+        results = query.limit(limit).all()
 
-        return [mappers.map_word_with_details(w) for w in words]
+        return [mappers.map_word_with_details(w) for w, _ in results]
 
     def delete(self, phrase: str) -> None:
         """Delete a word."""
