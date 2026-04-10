@@ -1,5 +1,6 @@
 """Vocabulary service - delegates to specialized services."""
 
+from application.factory import ServiceFactory
 from application.notification_service import NotificationService
 from application.review_service import ReviewService
 from application.service_interfaces import AbstractTranslationService
@@ -8,64 +9,39 @@ from application.translation_test_service import TranslationTestService
 from application.word_service import WordManagementService
 from application.wotd_service import WOTDService
 from domain.entities import Language, Word
-from domain.repositories import (
-    AbstractLanguageRepository,
-    AbstractSettingsRepository,
-    AbstractStatsRepository,
-    AbstractWordRepository,
-    AbstractWOTDRepository,
-)
-from repositories import AbstractDatabase
+from infrastructure.database_manager import DatabaseManager
 
 
 class VocabService:
     """Vocabulary service - delegates to specialized services.
 
-    All dependencies are injected via constructor (dependency injection).
+    Uses ServiceFactory to create services with proper DI.
     Use create_vocab_service() factory for convenient instantiation.
     """
 
     def __init__(
         self,
-        db: AbstractDatabase,
-        word_repo: AbstractWordRepository,
-        stats_repo: AbstractStatsRepository,
-        settings_repo: AbstractSettingsRepository,
-        language_repo: AbstractLanguageRepository,
-        wotd_repo: AbstractWOTDRepository,
-        translation_service: AbstractTranslationService,
+        db_manager: DatabaseManager,
+        factory: ServiceFactory,
     ) -> None:
-        self.db = db
-        self.word_repo = word_repo
-        self.stats_repo = stats_repo
-        self.settings_repo = settings_repo
-        self.language_repo = language_repo
-        self.wotd_repo = wotd_repo
-        self.translation_service = translation_service
+        self._db_manager = db_manager
 
+        self.language_repo = factory.language_repository
         self.language_repo.init_defaults()
 
-        self.word_service = WordManagementService(
-            self.word_repo,
-            self.language_repo,
-            self.settings_repo,
-            self.translation_service,
-        )
-        self.review_service = ReviewService(self.word_repo, self.stats_repo, self.settings_repo)
-        self.settings_service = SettingsService(self.settings_repo)
-        self.wotd_service = WOTDService(
-            self.settings_repo,
-            self.wotd_repo,
-            self.word_service,
-            self.translation_service,
-        )
+        self.word_service = factory.create_word_service()
+        self.review_service = factory.create_review_service()
+        self.settings_service = factory.create_settings_service()
+        self.export_service = factory.create_export_service()
 
-        self.notification_service = NotificationService(
+        self.wotd_service = factory.create_wotd_service(self.word_service)
+
+        self.notification_service = factory.create_notification_service(
             review_service=self.review_service,
             word_service=self.word_service,
         )
 
-        self.translation_test_service = TranslationTestService(self.translation_service)
+        self.translation_test_service = factory.create_translation_test_service()
 
     def get_settings(self) -> dict:
         return self.settings_service.get_settings()
@@ -112,7 +88,7 @@ class VocabService:
         self.word_service.delete_translation(word_id, target_lang)
 
     def export_csv(self, filepath: str) -> None:
-        self.word_service.export_csv(filepath)
+        self.export_service.export_csv(filepath)
 
     def get_next_word(self) -> Word | None:
         return self.review_service.get_next_word()
@@ -155,7 +131,7 @@ class VocabService:
         return self.translation_test_service.test_connection(source_lang, target_lang)
 
     def close(self) -> None:
-        self.db.close()
+        self._db_manager.close()
 
     def remove_session(self) -> None:
-        self.db.remove_session()
+        self._db_manager.remove_session()

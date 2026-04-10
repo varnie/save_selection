@@ -76,6 +76,10 @@ class AbstractWordManagementService(ABC):
         """Delete only translation for specific language, not the word."""
         pass
 
+
+class AbstractExportService(ABC):
+    """Abstract interface for export operations."""
+
     @abstractmethod
     def export_csv(self, filepath: str) -> None:
         """Export words to CSV."""

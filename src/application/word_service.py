@@ -135,21 +135,3 @@ class WordManagementService(AbstractWordManagementService):
     def delete_translation(self, word_id: int, target_lang: str) -> None:
         """Delete only translation for specific language, not the word."""
         self.word_repo.delete_translation(word_id, target_lang)
-
-    def export_csv(self, filepath: str) -> None:
-        """Export words to CSV."""
-        import csv
-
-        words = self.word_repo.get_all()
-        with open(filepath, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["source", "target", "source language", "target language"])
-            for word in words:
-                writer.writerow(
-                    [
-                        word.phrase,
-                        word.translation,
-                        "en",
-                        word.language_code,
-                    ]
-                )

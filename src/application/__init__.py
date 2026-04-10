@@ -3,9 +3,11 @@
 import os
 from typing import Optional
 
-from application.vocab_service import VocabService
+from application.export_service import ExportService
+from application.factory import ServiceFactory
 from application.review_service import ReviewService
 from application.service_interfaces import (
+    AbstractExportService,
     AbstractReviewService,
     AbstractSettingsService,
     AbstractTranslationService,
@@ -13,10 +15,12 @@ from application.service_interfaces import (
     AbstractWOTDService,
 )
 from application.settings_service import SettingsService
+from application.vocab_service import VocabService
 from application.word_service import WordManagementService
 from application.wotd_service import WOTDService
 from config import read_config
 from constants import CONFIG_FILE, DEFAULT_DB_PATH
+from infrastructure.database_manager import DatabaseManager
 from infrastructure.translation import TranslationServiceImpl
 from repositories import (
     LanguageRepository,
@@ -69,7 +73,9 @@ def create_vocab_service(
     wotd_repo = WOTDRepository(db)
     translation_service = TranslationServiceImpl()
 
-    return VocabService(
+    db_manager = DatabaseManager(db)
+
+    factory = ServiceFactory(
         db=db,
         word_repo=word_repo,
         stats_repo=stats_repo,
@@ -79,13 +85,20 @@ def create_vocab_service(
         translation_service=translation_service,
     )
 
+    return VocabService(
+        db_manager=db_manager,
+        factory=factory,
+    )
+
 
 __all__ = [
+    "AbstractExportService",
     "AbstractReviewService",
     "AbstractSettingsService",
     "AbstractTranslationService",
     "AbstractWOTDService",
     "AbstractWordManagementService",
+    "ExportService",
     "ReviewService",
     "SettingsService",
     "VocabService",
