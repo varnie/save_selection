@@ -25,13 +25,13 @@ class ReviewService(AbstractReviewService):
         self.stats_repo = stats_repo
         self.settings_repo = settings_repo
 
-    def _get_target_lang(self) -> str:
-        setting = self.settings_repo.get("target_lang")
-        return setting.value if setting else "ru"
+    def _get_setting(self, key: str, default: str) -> str:
+        setting = self.settings_repo.get(key)
+        return setting.value if setting else default
 
     def get_next_word(self) -> Optional[Word]:
         """Get next word due for review with translation in current target language."""
-        target_lang = self._get_target_lang()
+        target_lang = self._get_setting("target_lang", "ru")
         words = self.word_repo.get_due(limit=20, target_lang=target_lang)
 
         if not words:

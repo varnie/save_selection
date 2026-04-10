@@ -3,7 +3,6 @@
 from application.factory import ServiceFactory
 from application.notification_service import NotificationService
 from application.review_service import ReviewService
-from application.service_interfaces import AbstractTranslationService
 from application.settings_service import SettingsService
 from application.translation_test_service import TranslationTestService
 from application.word_service import WordManagementService

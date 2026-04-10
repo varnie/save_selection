@@ -31,16 +31,14 @@ class WordManagementService(AbstractWordManagementService):
         self.translation_service = translation_service
 
     def _get_target_lang(self) -> str:
-        setting = self.settings_repo.get("target_lang")
-        return setting.value if setting else "ru"
+        return self._get_setting("target_lang", "ru")
 
     def _get_source_lang(self) -> str:
-        setting = self.settings_repo.get("source_lang")
-        return setting.value if setting else "en"
+        return self._get_setting("source_lang", "en")
 
-    def _get_translation_provider(self) -> str:
-        setting = self.settings_repo.get("translation_provider")
-        return setting.value if setting else "google_direct"
+    def _get_setting(self, key: str, default: str) -> str:
+        setting = self.settings_repo.get(key)
+        return setting.value if setting else default
 
     def add_word(
         self, phrase: str, translation: str | None = None, auto_translate: bool = False
@@ -68,7 +66,7 @@ class WordManagementService(AbstractWordManagementService):
             if translation:
                 self.word_repo.add_translation(word_id, translation, target_lang)
             elif auto_translate:
-                provider_name = self._get_translation_provider()
+                provider_name = self._get_setting("translation_provider", "google_direct")
                 source_lang = self._get_source_lang()
                 trans = self.translation_service.translate(
                     phrase, target_lang, source_lang, provider_name
