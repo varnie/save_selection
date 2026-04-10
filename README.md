@@ -109,20 +109,12 @@ Configure via System Settings → Keyboard → Shortcuts → Services, or use to
 
 ### Current Implementation
 
-Words are selected for review based on **review count** (ascending order):
-- Words shown fewer times appear first in the queue
-- Words shown many times naturally sink to the bottom
-- This ensures variety and prevents the same words from appearing repeatedly
-
-### SM-2 Algorithm (Future Enhancement)
-
-The full SM-2 algorithm is partially implemented but requires user quality feedback:
+Words are selected for review using the SM-2 algorithm:
 - **First review**: 1 day interval
 - **Subsequent reviews**: `interval × ease_factor` (default 2.5x)
-- **Ease factor**: Increases slightly with each review (minimum 1.3)
+- **Ease factor**: Increases slightly with each quality rating ≥3, decreases if <3 (minimum 1.3)
 - **Maximum interval**: 180 days (≈6 months)
-
-To enable interval-based scheduling, quality rating buttons would need to be added to the UI.
+- **Sorting**: Due date ascending, then by interval (shorter first)
 
 ## Troubleshooting
 
@@ -152,4 +144,52 @@ To enable interval-based scheduling, quality rating buttons would need to be add
 #### Words don't appear in review
 - The app shows words that are due for review (based on interval)
 - Make sure your target language matches the translations you want to review
+
+## Architecture
+
+```
+src/
+├── application/           # Service layer (business logic)
+│   ├── factory.py         # ServiceFactory - creates services with DI
+│   ├── export_service.py  # CSV export
+│   ├── review_service.py  # SM-2 spaced repetition
+│   ├── word_service.py    # Word CRUD operations
+│   ├── wotd_service.py    # Word of the Day
+│   ├── settings_service.py
+│   └── service_interfaces.py  # Abstract interfaces
+│
+├── domain/                # Domain layer (pure business rules)
+│   ├── entities.py       # Word, Language, Stats, etc.
+│   └── repositories.py  # Abstract repository interfaces
+│
+├── infrastructure/        # Infrastructure layer (external systems)
+│   ├── database_manager.py  # DB lifecycle
+│   ├── translation.py    # Translation API implementations
+│   ├── models.py         # SQLAlchemy ORM models
+│   ├── mappers.py        # ORM ↔ Entity mappers
+│   └── ...
+│
+├── repositories/          # Data access implementations
+│   ├── word_repository.py
+│   ├── settings_repository.py
+│   └── sqlite.py         # SQLite implementation
+│
+└── vocab_gui.py          # GTK3 GUI entry point
+```
+
+### Design Patterns Used
+
+- **Dependency Injection**: Services receive dependencies via constructor
+- **Factory Pattern**: `ServiceFactory` creates services with proper DI
+- **Repository Pattern**: Abstract data access via interfaces
+- **Facade Pattern**: `VocabService` provides unified API
+- **Single Responsibility**: Each service handles one domain
+
+### SOLID Principles
+
+- **S**ingle Responsibility: Each class has one reason to change
+- **O**pen/Closed: Extend via interfaces, not modification
+- **L**iskov Substitution: All implementations follow abstract interfaces
+- **I**nterface Segregation: Small, focused interfaces
+- **D**ependency Inversion: Depend on abstractions, not implementations
 
