@@ -47,25 +47,14 @@ Located in `src/` folder - modern GTK3 interface with system tray.
 ./setup.sh
 ```
 
-This will create a virtual environment and install dependencies:
+This will create a virtual environment and install all dependencies:
 - `requests` - HTTP library
 - `sqlalchemy` - Database ORM
 - `deep-translator` - Translation library
 - `easygoogletranslate` - Alternative translation
-
-#### Test dependencies
-
-```bash
-pip install pytest pytest-mock pytest-cov
-```
-
-#### Running tests
-
-```bash
-pytest src/tests/ -v              # Run all tests
-pytest src/tests/ -v --cov=src    # With coverage
-pytest src/tests/ --cov-report=html  # Generate HTML report
-```
+- `pytest` - Testing framework
+- `pytest-mock` - Mock support
+- `pytest-cov` - Coverage reports
 
 #### Platform-specific dependencies
 
@@ -209,23 +198,11 @@ src/
 
 ## Testing
 
-### Install test dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
 ### Run tests
 
 ```bash
-# All tests with verbose output
+source venv/bin/activate
 PYTHONPATH=src pytest src/tests/ -v
-
-# With coverage report
-PYTHONPATH=src pytest src/tests/ --cov=src --cov-report=term
-
-# Generate HTML coverage report
-PYTHONPATH=src pytest src/tests/ --cov=src --cov-report=html
 ```
 
 ### Test structure
