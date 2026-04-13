@@ -53,6 +53,20 @@ This will create a virtual environment and install dependencies:
 - `deep-translator` - Translation library
 - `easygoogletranslate` - Alternative translation
 
+#### Test dependencies
+
+```bash
+pip install pytest pytest-mock pytest-cov
+```
+
+#### Running tests
+
+```bash
+pytest src/tests/ -v              # Run all tests
+pytest src/tests/ -v --cov=src    # With coverage
+pytest src/tests/ --cov-report=html  # Generate HTML report
+```
+
 #### Platform-specific dependencies
 
 **Linux (apt):** `python3-gi`, `python3-gi-cairo`, `gir1.2-gtk-3.0`, `gir1.2-appindicator3-0.1`
@@ -192,4 +206,45 @@ src/
 - **L**iskov Substitution: All implementations follow abstract interfaces
 - **I**nterface Segregation: Small, focused interfaces
 - **D**ependency Inversion: Depend on abstractions, not implementations
+
+## Testing
+
+### Install test dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run tests
+
+```bash
+# All tests with verbose output
+PYTHONPATH=src pytest src/tests/ -v
+
+# With coverage report
+PYTHONPATH=src pytest src/tests/ --cov=src --cov-report=term
+
+# Generate HTML coverage report
+PYTHONPATH=src pytest src/tests/ --cov=src --cov-report=html
+```
+
+### Test structure
+
+```
+src/tests/
+├── conftest.py           # Fixtures
+├── unit/               # Unit tests
+│   ├── test_word_service.py
+│   ├── test_review_service.py
+│   ├── test_settings_service.py
+│   └── test_export_service.py
+├── domain/             # Domain entity tests
+│   └── test_entities.py
+└── integration/      # Integration tests
+    └── test_repository.py
+```
+
+### CI
+
+Tests run automatically on GitHub Actions (see `.github/workflows/test.yml`).
 
