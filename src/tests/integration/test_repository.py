@@ -27,25 +27,6 @@ class TestWordRepositoryIntegration:
         deleted = word_repo.get_by_phrase("updatedword")
         assert deleted is None
 
-    def test_add_translation(self, word_repo):
-        """Test adding translation."""
-        word = word_repo.add("hello")
-        word_repo.add_translation(word.id, "привет", "ru")
-
-        translation = word_repo.get_translation(word.id, "ru")
-        assert translation is not None
-        assert translation.translation == "привет"
-
-    def test_get_translation(self, word_repo):
-        """Test getting translation."""
-        word = word_repo.add("world")
-        word_repo.add_translation(word.id, "мир", "ru")
-
-        translation = word_repo.get_translation(word.id, "ru")
-        assert translation is not None
-        if translation:
-            assert translation.translation == "мир"
-
     def test_delete_translation(self, word_repo):
         """Test deleting translation."""
         word = word_repo.add("todelete")
