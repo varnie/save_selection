@@ -63,3 +63,32 @@ class TestReviewService:
 
         counts = review_service.get_language_counts()
         assert isinstance(counts, dict)
+
+    def test_get_next_word_least_seen_first(self, word_service, review_service):
+        """Test that words with fewer reviews appear first."""
+        word1 = word_service.add_word("word1", translation="w1")
+        word2 = word_service.add_word("word2", translation="w2")
+        word3 = word_service.add_word("word3", translation="w3")
+
+        first = review_service.get_next_word()
+        assert first is not None
+
+        review_service.review_word(word1.id, quality=3)
+
+        second = review_service.get_next_word()
+        assert second is not None
+        assert second.id != word1.id
+
+    def test_new_word_appears_before_reviewed(self, word_service, review_service):
+        """Test that never-reviewed words appear before reviewed ones."""
+        word_a = word_service.add_word("alpha", translation="а")
+        word_b = word_service.add_word("beta", translation="б")
+
+        first = review_service.get_next_word()
+        first_id = first.id
+
+        review_service.review_word(first_id, quality=3)
+
+        second = review_service.get_next_word()
+
+        assert second.id != first_id
