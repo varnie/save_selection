@@ -97,6 +97,11 @@ class AbstractStatsRepository(ABC):
         pass
 
     @abstractmethod
+    def get_review_count(self, word_id: int) -> int:
+        """Get number of reviews for a word."""
+        pass
+
+    @abstractmethod
     def get_stats(self) -> Stats:
         """Get overall statistics."""
         pass

@@ -30,17 +30,17 @@ class ReviewService(AbstractReviewService):
         return setting.value if setting else default
 
     def get_next_word(self) -> Optional[Word]:
-        """Get next word due for review with translation in current target language."""
+        """Get next word due for review - least seen first, then by due date."""
         target_lang = self._get_setting("target_lang", "ru")
-        words = self.word_repo.get_due(limit=20, target_lang=target_lang)
+        words = self.word_repo.get_due(limit=50, target_lang=target_lang)
 
         if not words:
             return None
 
         def sort_key(word: Word) -> tuple:
+            review_count = self.stats_repo.get_review_count(word.id)
             due_date = word.due_date if word.due_date else 0
-            interval = word.interval_days if word.interval_days else 1
-            return (due_date, interval)
+            return (review_count, due_date)
 
         sorted_words = sorted(words, key=sort_key)
         return sorted_words[0]

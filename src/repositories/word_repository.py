@@ -222,6 +222,13 @@ class StatsRepository(AbstractStatsRepository):
         self.db.commit()
         return mappers.map_history(orm_history)
 
+    def get_review_count(self, word_id: int) -> int:
+        """Get number of reviews for a word (for sorting: least seen first)."""
+        return (
+            self.db.session.query(func.count(ORMHistory.id)).filter_by(word_id=word_id).scalar()
+            or 0
+        )
+
     def get_stats(self) -> Stats:
         """Get overall statistics."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
