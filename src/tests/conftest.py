@@ -1,0 +1,179 @@
+"""Test fixtures and configuration."""
+
+import os
+import tempfile
+from unittest.mock import MagicMock
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+from infrastructure.models import Base
+from infrastructure.database_manager import DatabaseManager
+
+
+@pytest.fixture
+def in_memory_engine():
+    """Create in-memory SQLite engine for testing."""
+    engine = create_engine("sqlite:///:memory:", echo=False)
+    Base.metadata.create_all(engine)
+    return engine
+
+
+@pytest.fixture
+def test_db(in_memory_engine):
+    """Create test database with in-memory SQLite."""
+    engine = in_memory_engine
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    class TestDatabase:
+        def __init__(self):
+            self.engine = engine
+            self._session = session_factory()
+
+        @property
+        def session(self) -> Session:
+            return self._session
+
+        def commit(self):
+            self._session.commit()
+
+        def rollback(self):
+            self._session.rollback()
+
+        def close(self):
+            pass
+
+        def remove_session(self):
+            pass
+
+    db = TestDatabase()
+    return db
+
+
+@pytest.fixture
+def word_repo(test_db):
+    """Create WordRepository with test database."""
+    from repositories.word_repository import WordRepository
+
+    return WordRepository(test_db)
+
+
+@pytest.fixture
+def settings_repo(test_db):
+    """Create SettingsRepository with test database."""
+    from repositories.settings_repository import SettingsRepository
+
+    return SettingsRepository(test_db)
+
+
+@pytest.fixture
+def stats_repo(test_db):
+    """Create StatsRepository with test database."""
+    from repositories.word_repository import StatsRepository
+
+    return StatsRepository(test_db)
+
+
+@pytest.fixture
+def language_repo(test_db):
+    """Create LanguageRepository with test database."""
+    from repositories.settings_repository import LanguageRepository
+
+    repo = LanguageRepository(test_db)
+    repo.init_defaults()
+    return repo
+
+
+@pytest.fixture
+def mock_translation_service():
+    """Create mock translation service."""
+    mock = MagicMock()
+    mock.translate.return_value = "тест"
+    return mock
+
+
+@pytest.fixture
+def vocab_service(
+    test_db,
+    word_repo,
+    stats_repo,
+    settings_repo,
+    language_repo,
+    mock_translation_service,
+):
+    """Create VocabService with all test dependencies."""
+    from application.factory import ServiceFactory
+    from infrastructure.database_manager import DatabaseManager
+
+    db_manager = DatabaseManager(test_db)
+
+    factory = ServiceFactory(
+        db=test_db,
+        word_repo=word_repo,
+        stats_repo=stats_repo,
+        settings_repo=settings_repo,
+        language_repo=language_repo,
+        wotd_repo=MagicMock(),  # Mock - not used in tests
+        translation_service=mock_translation_service,
+    )
+
+    from application.vocab_service import VocabService
+
+    return VocabService(db_manager=db_manager, factory=factory)
+
+
+@pytest.fixture
+def word_service(
+    word_repo,
+    language_repo,
+    settings_repo,
+    mock_translation_service,
+):
+    """Create WordManagementService for unit testing."""
+    from application.word_service import WordManagementService
+
+    return WordManagementService(
+        word_repo=word_repo,
+        language_repo=language_repo,
+        settings_repo=settings_repo,
+        translation_service=mock_translation_service,
+    )
+
+
+@pytest.fixture
+def review_service(word_repo, stats_repo, settings_repo):
+    """Create ReviewService for unit testing."""
+    from application.review_service import ReviewService
+
+    return ReviewService(
+        word_repo=word_repo,
+        stats_repo=stats_repo,
+        settings_repo=settings_repo,
+    )
+
+
+@pytest.fixture
+def settings_service(settings_repo):
+    """Create SettingsService for unit testing."""
+    from application.settings_service import SettingsService
+
+    return SettingsService(settings_repo)
+
+
+@pytest.fixture
+def export_service(word_repo):
+    """Create ExportService for unit testing."""
+    from application.export_service import ExportService
+
+    return ExportService(word_repo)
+
+
+@pytest.fixture
+def temp_csv_file():
+    """Create temporary CSV file path."""
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+        path = f.name
+    yield path
+    if os.path.exists(path):
+        os.unlink(path)
