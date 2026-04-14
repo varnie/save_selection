@@ -3,7 +3,8 @@
 from repositories.base import AbstractDatabase, DatabaseFactory
 from repositories.settings_repository import LanguageRepository, SettingsRepository, WOTDRepository
 from repositories.sqlite import SQLiteDatabase
-from repositories.word_repository import StatsRepository, WordRepository
+from repositories.stats_repository import StatsRepository
+from repositories.word_repository import WordRepository
 
 # Register SQLite as default implementation
 DatabaseFactory.register("sqlite", SQLiteDatabase)

@@ -70,7 +70,7 @@ def settings_repo(test_db):
 @pytest.fixture
 def stats_repo(test_db):
     """Create StatsRepository with test database."""
-    from repositories.word_repository import StatsRepository
+    from repositories.stats_repository import StatsRepository
 
     return StatsRepository(test_db)
 
