@@ -102,16 +102,23 @@ class StatsRepository(AbstractStatsRepository):
         )
 
         def interval_count(op) -> int:
+            # Use LEFT JOIN to include words without stats (treat as learning/short)
+            # This counts ALL words with translations, not just those with stats
             return (
-                self.db.session.query(func.count(func.distinct(ORMWordStats.word_id)))
-                .join(ORMWord, ORMWordStats.word_id == ORMWord.id)
+                self.db.session.query(func.count(func.distinct(ORMWord.id)))
+                .select_from(ORMWord)
                 .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
+                .outerjoin(ORMWordStats, ORMWord.id == ORMWordStats.word_id)
                 .filter(op)
                 .scalar()
                 or 0
             )
 
-        short_interval = interval_count(ORMWordStats.interval_days <= 7)
+        # Learning (≤7 days): include words with interval ≤ 7 OR no stats (new words)
+        short_interval = interval_count(
+            (ORMWordStats.interval_days <= 7) | (ORMWordStats.interval_days.is_(None))
+        )
+        # Mastered (>7 days): only words with interval > 7 (definitely mastered)
         long_interval = interval_count(ORMWordStats.interval_days > 7)
 
         today_date = datetime.now(timezone.utc).date()
