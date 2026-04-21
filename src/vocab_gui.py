@@ -212,7 +212,7 @@ class VocabApp(Gtk.Application):
             body += f"\n→ {translation} [{abbrev}]"
 
         self._set_current_phrase(word.phrase)
-        self.vocab_service.skip_word(word.id)
+        self.vocab_service.review_word(word.id, quality=3)
         self.notify(body)
 
     def check_wotd(self) -> None:
