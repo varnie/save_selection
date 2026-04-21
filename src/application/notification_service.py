@@ -41,6 +41,6 @@ class NotificationService:
         with open(TEMP_PHRASE_FILE, "w") as f:
             f.write(phrase)
 
-        self._review.skip_word(word.id)
+        self._review.review_word(word.id, quality=3)
 
         return body
