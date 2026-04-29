@@ -1,0 +1,136 @@
+"""Tests for wotd (Word of the Day) module."""
+
+import json
+import os
+from unittest.mock import patch, mock_open
+
+import pytest
+
+from wotd import CEFR_LEVELS, LocalWordSource, OnlineWordSource, WordSourceType, get_word_source
+
+
+class TestCEFRLevels:
+    """Tests for CEFR_LEVELS constant."""
+
+    def test_cefr_levels_contains_all_levels(self):
+        """Test that CEFR_LEVELS contains all expected levels."""
+        assert "A1" in CEFR_LEVELS
+        assert "A2" in CEFR_LEVELS
+        assert "B1" in CEFR_LEVELS
+        assert "B2" in CEFR_LEVELS
+        assert "C1" in CEFR_LEVELS
+        assert "C2" in CEFR_LEVELS
+
+    def test_cefr_levels_length(self):
+        """Test that CEFR_LEVELS has 6 levels."""
+        assert len(CEFR_LEVELS) == 6
+
+
+class TestLocalWordSource:
+    """Tests for LocalWordSource."""
+
+    @patch("wotd.LocalWordSource._load_words")
+    def test_get_word_returns_dict_with_word_and_level(self, mock_load):
+        """Test that get_word returns dict with word and level keys."""
+        mock_load.return_value = {"A1": ["hello", "world"]}
+        source = LocalWordSource()
+        result = source.get_word("A1")
+        assert result is not None
+        assert "word" in result
+        assert "level" in result
+
+    @patch("wotd.LocalWordSource._load_words")
+    def test_get_word_returns_none_for_empty_level(self, mock_load):
+        """Test that get_word returns None for level with no words."""
+        mock_load.return_value = {"A1": []}
+        source = LocalWordSource()
+        result = source.get_word("A1")
+        assert result is None
+
+    @patch("wotd.LocalWordSource._load_words")
+    def test_get_word_returns_none_for_missing_level(self, mock_load):
+        """Test that get_word returns None for non-existent level."""
+        mock_load.return_value = {"A1": ["hello"]}
+        source = LocalWordSource()
+        result = source.get_word("B2")
+        assert result is None
+
+    @patch("wotd.LocalWordSource._load_words")
+    def test_get_word_uppercases_level(self, mock_load):
+        """Test that get_word uppercases the level parameter."""
+        mock_load.return_value = {"A1": ["hello"]}
+        source = LocalWordSource()
+        result = source.get_word("a1")
+        assert result is not None
+        assert result["level"] == "A1"
+
+    @patch("wotd.LocalWordSource._load_words")
+    def test_get_available_levels(self, mock_load):
+        """Test that get_available_levels returns sorted keys."""
+        mock_load.return_value = {"B2": [], "A1": [], "C1": []}
+        source = LocalWordSource()
+        levels = source.get_available_levels()
+        assert levels == ["A1", "B2", "C1"]
+
+    def test_load_words_file_not_found(self):
+        """Test that _load_words returns empty dict when file not found."""
+        with patch("wotd.os.path.join", return_value="/nonexistent/wotd_words.json"):
+            source = LocalWordSource()
+            assert source.words == {}
+
+    def test_load_words_invalid_json(self):
+        """Test that _load_words returns empty dict for invalid JSON."""
+        mock_data = '{"invalid json'
+        with patch("builtins.open", mock_open(read_data=mock_data)):
+            with patch("wotd.os.path.join", return_value="fake_path"):
+                source = LocalWordSource()
+                assert source.words == {}
+
+
+class TestOnlineWordSource:
+    """Tests for OnlineWordSource."""
+
+    def test_get_word_returns_none(self):
+        """Test that OnlineWordSource.get_word returns None (not implemented)."""
+        source = OnlineWordSource()
+        result = source.get_word("A1")
+        assert result is None
+
+    def test_get_available_levels_returns_cefr_levels(self):
+        """Test that get_available_levels returns all CEFR levels."""
+        source = OnlineWordSource()
+        levels = source.get_available_levels()
+        assert levels == CEFR_LEVELS
+
+    def test_configure_sets_api_url(self):
+        """Test that configure sets api_url."""
+        source = OnlineWordSource()
+        source.configure("https://api.example.com", "key123")
+        assert source.api_url == "https://api.example.com"
+        assert source.api_key == "key123"
+
+    def test_configure_without_api_key(self):
+        """Test that configure works without api_key."""
+        source = OnlineWordSource()
+        source.configure("https://api.example.com")
+        assert source.api_url == "https://api.example.com"
+        assert source.api_key is None
+
+
+class TestGetWordSource:
+    """Tests for get_word_source factory function."""
+
+    def test_get_local_source_by_default(self):
+        """Test that get_word_source returns LocalWordSource by default."""
+        source = get_word_source()
+        assert isinstance(source, LocalWordSource)
+
+    def test_get_local_source_explicit(self):
+        """Test that get_word_source returns LocalWordSource for LOCAL type."""
+        source = get_word_source(WordSourceType.LOCAL)
+        assert isinstance(source, LocalWordSource)
+
+    def test_get_online_source(self):
+        """Test that get_word_source returns OnlineWordSource for ONLINE type."""
+        source = get_word_source(WordSourceType.ONLINE)
+        assert isinstance(source, OnlineWordSource)
