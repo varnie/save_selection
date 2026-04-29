@@ -14,12 +14,13 @@ class SQLiteDatabase(BaseDatabase):
 
     def __init__(self, db_path: str):
         self.db_path = db_path
-        # SQLite URL format: sqlite:////absolute/path or sqlite:///relative/path
-        # For absolute paths (starting with /), use sqlite:///path
+        # SQLite URL format:
+        # - Relative path: sqlite:///path (3 slashes)
+        # - Absolute path: sqlite:////path (4 slashes = sqlite:/// + /path)
         if db_path.startswith("/"):
-            url = f"sqlite://{db_path}"
+            url = f"sqlite:///{db_path}"  # Results in sqlite:////path (4 slashes)
         else:
-            url = f"sqlite:///{db_path}"
+            url = f"sqlite:///{db_path}"  # Results in sqlite:///path (3 slashes)
         self.engine = create_engine(
             url,
             echo=False,
