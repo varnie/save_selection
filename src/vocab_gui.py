@@ -18,6 +18,7 @@ from windows.add_word import AddWordDialog
 from windows.settings import SettingsWindow
 from windows.stats import StatsWindow
 from windows.word_browser import WordBrowserWindow
+from config import DEFAULT_SETTINGS
 
 
 def _create_tray():
@@ -141,13 +142,8 @@ class VocabApp(Gtk.Application):
 
     def _init_default_settings(self) -> None:
         """Initialize default settings if not set."""
-        defaults = {
-            "review_interval": "3600",
-            "source_lang": "en",
-            "target_lang": "ru",
-            "translation_provider": "google",
-            "autostart": "false",
-        }
+        defaults = DEFAULT_SETTINGS.copy()
+        defaults["autostart"] = "false"
         for key, value in defaults.items():
             if self.vocab_service.get_setting(key) is None:
                 self.vocab_service.set_setting(key, value)

@@ -1,5 +1,7 @@
 """Settings service - handles application settings."""
 
+from config import DEFAULT_SETTINGS
+
 from application.service_interfaces import AbstractSettingsService
 from domain.repositories import AbstractSettingsRepository
 from infrastructure.autostart import AutostartManager
@@ -28,10 +30,10 @@ class SettingsService(AbstractSettingsService):
         translation_provider = self.get_setting("translation_provider")
 
         return {
-            "review_interval": int(review_interval) if review_interval else 3600,
-            "source_lang": source_lang or "en",
-            "target_lang": target_lang or "ru",
-            "translation_provider": translation_provider or "google_direct",
+            "review_interval": int(review_interval) if review_interval else int(DEFAULT_SETTINGS["review_interval"]),
+            "source_lang": source_lang or DEFAULT_SETTINGS["source_lang"],
+            "target_lang": target_lang or DEFAULT_SETTINGS["target_lang"],
+            "translation_provider": translation_provider or DEFAULT_SETTINGS["translation_provider"],
         }
 
     def save_settings(self, settings: dict) -> None:

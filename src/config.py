@@ -27,3 +27,10 @@ def write_config(config_file: str, config: dict) -> bool:
         return True
     except Exception:
         return False
+
+DEFAULT_SETTINGS = {
+    "review_interval": "3600",
+    "source_lang": "en",
+    "target_lang": "ru",
+    "translation_provider": "google_direct",
+}

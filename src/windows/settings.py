@@ -6,9 +6,10 @@ import plistlib
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk
+from gi.repository import Gtk
 
 from config import read_config, write_config
+from config import DEFAULT_SETTINGS
 from constants import AUTOSTART_DIR, AUTOSTART_FILE, DEFAULT_DATA_DIR, IS_MACOS
 from infrastructure.translation import ProviderRegistry
 from version import get_version
@@ -99,7 +100,7 @@ class SettingsWindow(Gtk.Window):
         ]
         for value, label in intervals:
             self.interval_combo.append(value, label)
-        current_interval = str(self.vocab_service.get_settings().get("review_interval", "3600"))
+        current_interval = str(self.vocab_service.get_setting("review_interval", DEFAULT_SETTINGS["review_interval"]))
         self.interval_combo.set_active_id(current_interval)
         interval_box.pack_end(self.interval_combo, False, False, 0)
 
