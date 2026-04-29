@@ -1,12 +1,9 @@
 """Notification service - handles notification logic."""
 
-from typing import TYPE_CHECKING
-
 from constants import TEMP_PHRASE_FILE
 
-if TYPE_CHECKING:
-    from application.review_service import ReviewService
-    from application.word_service import WordManagementService
+from application.review_service import ReviewService
+from application.word_service import WordManagementService
 
 
 class NotificationService:

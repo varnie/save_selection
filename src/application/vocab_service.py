@@ -1,7 +1,6 @@
 """Vocabulary service - thin facade with auto-delegation."""
 
 from application.factory import ServiceFactory
-from domain.entities import Language, Word
 from infrastructure.database_manager import DatabaseManager
 
 
@@ -19,7 +18,7 @@ class VocabService:
     ) -> None:
         self._db_manager = db_manager
 
-        self.language_repo = factory.language_repository
+        self.language_repo = factory.language_repo
         self.language_repo.init_defaults()
 
         self.word_service = factory.create_word_service()

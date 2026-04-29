@@ -34,11 +34,6 @@ class ServiceFactory:
     wotd_repo: AbstractWOTDRepository
     translation_service: AbstractTranslationService
 
-    @property
-    def language_repository(self) -> AbstractLanguageRepository:
-        """Expose language repo for VocabService."""
-        return self.language_repo
-
     def create_word_service(self) -> WordManagementService:
         """Create word management service."""
         return WordManagementService(
