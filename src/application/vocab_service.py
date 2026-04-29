@@ -1,6 +1,9 @@
 """Vocabulary service - thin facade with auto-delegation."""
 
+from typing import List
+
 from application.factory import ServiceFactory
+from domain.entities import Language
 from infrastructure.database_manager import DatabaseManager
 
 
@@ -32,7 +35,7 @@ class VocabService:
         )
         self.translation_test_service = factory.create_translation_test_service()
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> None:
         """Auto-delegate to services."""
         for svc in [
             self.word_service,
@@ -53,7 +56,7 @@ class VocabService:
     def remove_session(self) -> None:
         self._db_manager.remove_session()
 
-    def get_languages(self) -> list[Language]:
+    def get_languages(self) -> List[Language]:
         return self.language_repo.get_all()
 
     def test_translation_api(self) -> bool:
