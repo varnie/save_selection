@@ -15,7 +15,7 @@ class SQLiteDatabase(BaseDatabase):
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.engine = create_engine(
-            f"sqlite:///{db_path}",
+            f"sqlite://{db_path}",
             echo=False,
             connect_args={"check_same_thread": False},
         )
