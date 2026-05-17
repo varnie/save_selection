@@ -30,3 +30,9 @@ Thumbs.db
 *.log
 
 *.csv
+
+# Test & coverage artifacts
+.coverage
+*.db
+htmlcov/
+.pytest_cache/

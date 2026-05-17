@@ -17,7 +17,8 @@ def in_memory_engine():
     """Create in-memory SQLite engine for testing."""
     engine = create_engine("sqlite:///:memory:", echo=False)
     Base.metadata.create_all(engine)
-    return engine
+    yield engine
+    engine.dispose()
 
 
 @pytest.fixture
@@ -42,13 +43,14 @@ def test_db(in_memory_engine):
             self._session.rollback()
 
         def close(self):
-            pass
+            self._session.close()
 
         def remove_session(self):
             pass
 
     db = TestDatabase()
-    return db
+    yield db
+    db.close()
 
 
 @pytest.fixture

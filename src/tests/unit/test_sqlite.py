@@ -26,6 +26,19 @@ class TestSQLiteDatabase:
     @patch("repositories.sqlite.create_engine")
     @patch("repositories.sqlite.scoped_session")
     @patch("repositories.sqlite.sessionmaker")
+    def test_init_creates_engine_with_relative_path(self, mock_sessionmaker, mock_scoped, mock_create_engine):
+        """Test that __init__ creates engine with correct URL for relative path."""
+        SQLiteDatabase("relative/test.db")
+        # For relative paths, SQLite needs sqlite:///path (3 slashes)
+        mock_create_engine.assert_called_once_with(
+            "sqlite:///relative/test.db",
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
+
+    @patch("repositories.sqlite.create_engine")
+    @patch("repositories.sqlite.scoped_session")
+    @patch("repositories.sqlite.sessionmaker")
     def test_init_sets_db_path(self, mock_sessionmaker, mock_scoped, mock_create_engine):
         """Test that __init__ sets db_path attribute."""
         db = SQLiteDatabase("/tmp/test.db")
