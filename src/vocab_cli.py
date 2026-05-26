@@ -7,7 +7,7 @@ import sys
 
 from application import create_vocab_service
 from constants import CONFIG_FILE, TEMP_PHRASE_FILE
-from infrastructure.clipboard import clear_primary_selection, get_clipboard_text
+from infrastructure.clipboard import get_clipboard_text
 from infrastructure.notifications import send_notification
 
 
@@ -58,7 +58,6 @@ def run_cli():
                 vocab_service.delete_word(phrase)
                 send_notification(f"Word deleted: {phrase[:30]}")
                 os.remove(temp_file)
-                clear_primary_selection()
 
     if args.next:
         body = vocab_service.get_next_word_notification()
