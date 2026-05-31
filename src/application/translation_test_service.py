@@ -9,11 +9,16 @@ class TranslationTestService:
     def __init__(self, translation_service: AbstractTranslationService) -> None:
         self._translation_service = translation_service
 
-    def test_connection(self, source_lang: str = "en", target_lang: str = "ru") -> bool:
+    def test_connection(
+        self,
+        source_lang: str = "en",
+        target_lang: str = "ru",
+        provider_name: str = "google_direct",
+    ) -> bool:
         """Test translation API with a simple query."""
         try:
             result = self._translation_service.translate(
-                "hello", target_lang or "ru", source_lang or "en"
+                "hello", target_lang or "ru", source_lang or "en", provider_name
             )
             return bool(result)
         except Exception:

@@ -155,8 +155,14 @@ class TestVocabService:
         service = VocabService(db_manager=mock_db_manager, factory=mock_factory)
         
         # Mock the get_setting method on the service itself (since it delegates)
-        with patch.object(service, 'get_setting', side_effect=lambda key, default: {"source_lang": "en", "target_lang": "ru"}.get(key, default)):
+        with patch.object(service, 'get_setting', side_effect=lambda key, default: {
+            "source_lang": "en",
+            "target_lang": "ru",
+            "translation_provider": "google_direct",
+        }.get(key, default)):
             result = service.test_translation_api()
 
             assert result is True
-            mock_translation_test_service.test_connection.assert_called_once_with("en", "ru")
+            mock_translation_test_service.test_connection.assert_called_once_with(
+                "en", "ru", "google_direct"
+            )

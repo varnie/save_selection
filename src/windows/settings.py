@@ -6,7 +6,7 @@ import plistlib
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk
 
 from config import read_config, write_config
 from config import DEFAULT_SETTINGS
@@ -71,6 +71,8 @@ class SettingsWindow(Gtk.Window):
         self.config_file = config_file
         self.set_default_size(600, 1100)
         self.set_position(Gtk.WindowPosition.CENTER)
+
+        self._test_completed = True
 
         self.build_ui()
 
@@ -324,6 +326,15 @@ class SettingsWindow(Gtk.Window):
         self.test_spinner.show()
         self.test_spinner.start()
 
+        self._test_completed = False
+
+        def _test_timeout():
+            if not self._test_completed:
+                GLib.idle_add(self._test_complete, False, provider_name)
+            return False
+
+        GLib.timeout_add(30000, _test_timeout)
+
         def run_test():
             success = self.vocab_service.test_translation_api()
             GLib.idle_add(self._test_complete, success, provider_name)
@@ -336,6 +347,7 @@ class SettingsWindow(Gtk.Window):
 
     def _test_complete(self, success, provider_name):
         """Handle test completion."""
+        self._test_completed = True
         self.test_spinner.stop()
         self.test_spinner.hide()
 

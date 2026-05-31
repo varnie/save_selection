@@ -62,4 +62,7 @@ class VocabService:
     def test_translation_api(self) -> bool:
         source_lang = self.get_setting("source_lang", "en")
         target_lang = self.get_setting("target_lang", "ru")
-        return self.translation_test_service.test_connection(source_lang, target_lang)
+        provider_name = self.get_setting("translation_provider", "google_direct")
+        return self.translation_test_service.test_connection(
+            source_lang, target_lang, provider_name
+        )
