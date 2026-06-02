@@ -316,7 +316,7 @@ class SettingsWindow(Gtk.Window):
         frame.add(align)
         return frame
 
-    def _on_destroy(self) -> None:
+    def _on_destroy(self, widget=None) -> None:
         """Clean up when window is destroyed."""
         self._test_completed = True
         if self._timeout_source_id:
