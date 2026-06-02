@@ -1,7 +1,5 @@
 """Unit tests for SettingsService."""
 
-import pytest
-
 
 class TestSettingsService:
     """Tests for SettingsService."""

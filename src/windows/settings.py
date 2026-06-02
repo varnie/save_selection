@@ -8,8 +8,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 
-from config import read_config, write_config
-from config import DEFAULT_SETTINGS
+from config import DEFAULT_SETTINGS, read_config, write_config
 from constants import AUTOSTART_DIR, AUTOSTART_FILE, DEFAULT_DATA_DIR, IS_MACOS
 from infrastructure.translation import ProviderRegistry
 from version import get_version

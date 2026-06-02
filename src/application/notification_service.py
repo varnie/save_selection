@@ -1,9 +1,8 @@
 """Notification service - handles notification logic."""
 
-from constants import TEMP_PHRASE_FILE
-
 from application.review_service import ReviewService
 from application.word_service import WordManagementService
+from constants import TEMP_PHRASE_FILE
 
 
 class NotificationService:

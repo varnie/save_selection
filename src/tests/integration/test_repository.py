@@ -1,7 +1,5 @@
 """Integration tests for repository."""
 
-import pytest
-
 
 class TestWordRepositoryIntegration:
     """Integration tests for WordRepository."""

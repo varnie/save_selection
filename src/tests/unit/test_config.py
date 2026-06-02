@@ -1,10 +1,7 @@
 """Tests for config module."""
 
 import json
-import os
 from unittest.mock import mock_open, patch
-
-import pytest
 
 from config import DEFAULT_SETTINGS, read_config, write_config
 

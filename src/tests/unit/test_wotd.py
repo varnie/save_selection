@@ -1,10 +1,6 @@
 """Tests for wotd (Word of the Day) module."""
 
-import json
-import os
-from unittest.mock import patch, mock_open
-
-import pytest
+from unittest.mock import mock_open, patch
 
 from wotd import CEFR_LEVELS, LocalWordSource, OnlineWordSource, WordSourceType, get_word_source
 

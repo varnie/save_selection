@@ -28,6 +28,7 @@ def write_config(config_file: str, config: dict) -> bool:
     except Exception:
         return False
 
+
 DEFAULT_SETTINGS = {
     "review_interval": "3600",
     "source_lang": "en",

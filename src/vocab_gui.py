@@ -12,13 +12,13 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gio, Gtk
 
 from application import create_vocab_service
+from config import DEFAULT_SETTINGS
 from constants import CONFIG_FILE, IS_LINUX, IS_MACOS, TEMP_PHRASE_FILE
 from infrastructure.notifications import send_notification
 from windows.add_word import AddWordDialog
 from windows.settings import SettingsWindow
 from windows.stats import StatsWindow
 from windows.word_browser import WordBrowserWindow
-from config import DEFAULT_SETTINGS
 
 
 def _create_tray():

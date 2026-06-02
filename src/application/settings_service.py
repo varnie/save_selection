@@ -1,8 +1,7 @@
 """Settings service - handles application settings."""
 
-from config import DEFAULT_SETTINGS
-
 from application.service_interfaces import AbstractSettingsService
+from config import DEFAULT_SETTINGS
 from domain.repositories import AbstractSettingsRepository
 from infrastructure.autostart import AutostartManager
 

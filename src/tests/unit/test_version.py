@@ -1,6 +1,5 @@
 """Tests for version module."""
 
-import os
 from unittest.mock import patch
 
 from version import get_version

@@ -1,6 +1,5 @@
 """Tests for domain entities."""
 
-import pytest
 from domain.entities import Language, Stats, Word, WordStats
 
 

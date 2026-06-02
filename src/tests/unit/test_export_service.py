@@ -1,7 +1,6 @@
 """Unit tests for ExportService."""
 
 import os
-import pytest
 
 
 class TestExportService:
@@ -19,7 +18,7 @@ class TestExportService:
 
         export_service.export_csv(temp_csv_file)
 
-        with open(temp_csv_file, "r", encoding="utf-8") as f:
+        with open(temp_csv_file, encoding="utf-8") as f:
             content = f.read()
         assert "source" in content.lower()
         assert "target" in content.lower()
@@ -30,7 +29,7 @@ class TestExportService:
 
         export_service.export_csv(temp_csv_file)
 
-        with open(temp_csv_file, "r", encoding="utf-8") as f:
+        with open(temp_csv_file, encoding="utf-8") as f:
             content = f.read()
         assert "hello" in content
         assert "привет" in content

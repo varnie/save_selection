@@ -72,4 +72,3 @@ def _get_linux_clipboard() -> str:
                 logger.warning("Failed to run wl-paste: %s", e)
 
     return ""
-

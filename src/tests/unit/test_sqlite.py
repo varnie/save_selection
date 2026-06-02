@@ -1,6 +1,6 @@
 """Tests for SQLite database implementation."""
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 

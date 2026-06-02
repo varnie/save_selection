@@ -8,8 +8,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from infrastructure.models import Base
 from infrastructure.database_manager import DatabaseManager
+from infrastructure.models import Base
 
 
 @pytest.fixture
@@ -106,7 +106,6 @@ def vocab_service(
 ):
     """Create VocabService with all test dependencies."""
     from application.factory import ServiceFactory
-    from infrastructure.database_manager import DatabaseManager
 
     db_manager = DatabaseManager(test_db)
 

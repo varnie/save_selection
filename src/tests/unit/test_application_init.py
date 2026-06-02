@@ -1,9 +1,6 @@
 """Tests for application __init__ module."""
 
-import os
-from unittest.mock import MagicMock, patch, PropertyMock
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from application import create_vocab_service, get_db_path
 

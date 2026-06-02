@@ -1,7 +1,7 @@
 """Unit tests for WordManagementService."""
 
+
 import pytest
-from unittest.mock import MagicMock
 
 
 class TestWordManagementService:

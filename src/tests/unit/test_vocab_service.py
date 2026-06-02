@@ -1,6 +1,6 @@
 """Tests for VocabService."""
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -134,14 +134,14 @@ class TestVocabService:
         """Test test_translation_api method."""
         mock_db_manager = MagicMock()
         mock_factory = MagicMock()
-        
+
         # Create a mock that has get_setting
         mock_settings_service = MagicMock()
         mock_settings_service.get_setting.side_effect = lambda key, default: {"source_lang": "en", "target_lang": "ru"}.get(key, default)
-        
+
         mock_translation_test_service = MagicMock()
         mock_translation_test_service.test_connection.return_value = True
-        
+
         mock_factory.language_repo = MagicMock()
         mock_factory.create_word_service.return_value = MagicMock()
         mock_factory.create_review_service.return_value = MagicMock()
@@ -153,7 +153,7 @@ class TestVocabService:
         mock_factory_class.return_value = mock_factory
 
         service = VocabService(db_manager=mock_db_manager, factory=mock_factory)
-        
+
         # Mock the get_setting method on the service itself (since it delegates)
         with patch.object(service, 'get_setting', side_effect=lambda key, default: {
             "source_lang": "en",
