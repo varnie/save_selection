@@ -131,9 +131,8 @@ class VocabApp(Gtk.Application):
             win.show_all()
             self._windows[key] = win
 
-    def _on_window_closed(self, key, window):
+    def _on_window_closed(self, key, window=None):
         self._windows[key] = None
-        return False
 
     @staticmethod
     def notify(body: str, title: str = "Vocab") -> None:
@@ -250,7 +249,7 @@ class VocabApp(Gtk.Application):
 
         def create_window():
             win = StatsWindow(self.vocab_service)
-            win.connect("delete-event", lambda w, e: self._on_window_closed("stats", w))
+            win.connect("destroy", lambda w: self._on_window_closed("stats", w))
             return win
 
         self._open_window("stats", create_window)
@@ -263,7 +262,7 @@ class VocabApp(Gtk.Application):
 
         def create_window():
             win = AddWordDialog(self.vocab_service, on_add)
-            win.connect("delete-event", lambda w, e: self._on_window_closed("add", w))
+            win.connect("destroy", lambda w: self._on_window_closed("add", w))
             return win
 
         self._open_window("add", create_window)
@@ -285,7 +284,7 @@ class VocabApp(Gtk.Application):
 
         def create_window():
             win = SettingsWindow(self.vocab_service, config_file=self.config_file)
-            win.connect("delete-event", lambda w, e: self._on_window_closed("settings", w))
+            win.connect("destroy", lambda w: self._on_window_closed("settings", w))
             return win
 
         self._open_window("settings", create_window)
@@ -295,7 +294,7 @@ class VocabApp(Gtk.Application):
 
         def create_window():
             win = WordBrowserWindow(self.vocab_service)
-            win.connect("delete-event", lambda w, e: self._on_window_closed("browser", w))
+            win.connect("destroy", lambda w: self._on_window_closed("browser", w))
             return win
 
         self._open_window("browser", create_window)
