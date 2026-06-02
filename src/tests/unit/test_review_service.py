@@ -6,7 +6,7 @@ class TestReviewService:
 
     def test_get_next_word_returns_due_word(self, word_service, review_service):
         """Test getting next word for review."""
-        word = word_service.add_word("test", translation="тест")
+        word_service.add_word("test", translation="тест")
 
         next_word = review_service.get_next_word()
         assert next_word is not None
@@ -64,8 +64,8 @@ class TestReviewService:
     def test_get_next_word_least_seen_first(self, word_service, review_service):
         """Test that words with fewer reviews appear first."""
         word1 = word_service.add_word("word1", translation="w1")
-        word2 = word_service.add_word("word2", translation="w2")
-        word3 = word_service.add_word("word3", translation="w3")
+        word_service.add_word("word2", translation="w2")
+        word_service.add_word("word3", translation="w3")
 
         first = review_service.get_next_word()
         assert first is not None
@@ -78,8 +78,8 @@ class TestReviewService:
 
     def test_new_word_appears_before_reviewed(self, word_service, review_service):
         """Test that never-reviewed words appear before reviewed ones."""
-        word_a = word_service.add_word("alpha", translation="а")
-        word_b = word_service.add_word("beta", translation="б")
+        word_service.add_word("alpha", translation="а")
+        word_service.add_word("beta", translation="б")
 
         first = review_service.get_next_word()
         first_id = first.id

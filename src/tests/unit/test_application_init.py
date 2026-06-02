@@ -31,7 +31,7 @@ class TestGetDbPath:
         mock_read_config.return_value = {"data_dir": "/tmp/custom_data"}
         with patch("application.os.makedirs") as mock_makedirs:
             with patch("application.os.path.dirname", return_value="/tmp/custom_data"):
-                result = get_db_path("/tmp/config.json")
+                get_db_path("/tmp/config.json")
                 mock_makedirs.assert_called_once_with("/tmp/custom_data", exist_ok=True)
 
     @patch("application.read_config")

@@ -77,10 +77,12 @@ class TestLocalWordSource:
     def test_load_words_invalid_json(self):
         """Test that _load_words returns empty dict for invalid JSON."""
         mock_data = '{"invalid json'
-        with patch("builtins.open", mock_open(read_data=mock_data)):
-            with patch("wotd.os.path.join", return_value="fake_path"):
-                source = LocalWordSource()
-                assert source.words == {}
+        with (
+            patch("builtins.open", mock_open(read_data=mock_data)),
+            patch("wotd.os.path.join", return_value="fake_path"),
+        ):
+            source = LocalWordSource()
+            assert source.words == {}
 
 
 class TestOnlineWordSource:

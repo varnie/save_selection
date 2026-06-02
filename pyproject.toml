@@ -3,7 +3,7 @@ name = "vocab_app"
 version = "1.0.0"
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py39"
 
 [tool.ruff.lint]
@@ -30,3 +30,11 @@ select = [
 "src/infrastructure/notifications.py" = ["S404"]  # subprocess used safely
 "src/infrastructure/tray/__init__.py" = ["RUF067"]  # conditional imports needed
 "src/repositories/__init__.py" = ["RUF067"]  # factory registration needed
+"src/tests/**/*.py" = [
+    "S101",   # assert — standard in pytest
+    "S108",   # /tmp paths — all mocked in tests
+    "SIM117", # nested with — stylistic, tests prefer readability
+    "RUF001", # Cyrillic in test data — intentional
+    "RUF069", # float equality 2.5 — exact init value, not computed
+]
+"src/application/__init__.py" = ["RUF067"]  # non-trivial code, not just re-exports

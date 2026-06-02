@@ -137,7 +137,8 @@ class TestVocabService:
 
         # Create a mock that has get_setting
         mock_settings_service = MagicMock()
-        mock_settings_service.get_setting.side_effect = lambda key, default: {"source_lang": "en", "target_lang": "ru"}.get(key, default)
+        settings = {"source_lang": "en", "target_lang": "ru"}
+        mock_settings_service.get_setting.side_effect = lambda key, default: settings.get(key, default)
 
         mock_translation_test_service = MagicMock()
         mock_translation_test_service.test_connection.return_value = True

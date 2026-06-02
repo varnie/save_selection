@@ -1,7 +1,5 @@
 """Vocabulary service - thin facade with auto-delegation."""
 
-from typing import List
-
 from application.factory import ServiceFactory
 from domain.entities import Language
 from infrastructure.database_manager import DatabaseManager
@@ -56,7 +54,7 @@ class VocabService:
     def remove_session(self) -> None:
         self._db_manager.remove_session()
 
-    def get_languages(self) -> List[Language]:
+    def get_languages(self) -> list[Language]:
         return self.language_repo.get_all()
 
     def test_translation_api(self) -> bool:

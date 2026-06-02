@@ -15,7 +15,7 @@ class TestSQLiteDatabase:
     @patch("repositories.sqlite.sessionmaker")
     def test_init_creates_engine_with_correct_url(self, mock_sessionmaker, mock_scoped, mock_create_engine):
         """Test that __init__ creates engine with correct SQLite URL."""
-        db = SQLiteDatabase("/tmp/test.db")
+        SQLiteDatabase("/tmp/test.db")
         # For absolute paths, SQLite needs sqlite:////path (4 slashes)
         mock_create_engine.assert_called_once_with(
             "sqlite:////tmp/test.db",
