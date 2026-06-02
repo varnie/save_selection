@@ -1,6 +1,5 @@
 """Settings window."""
 
-import concurrent.futures
 import os
 import plistlib
 
@@ -74,11 +73,7 @@ class SettingsWindow(Gtk.Window):
         self.set_position(Gtk.WindowPosition.CENTER)
 
         self._test_completed = True
-        self._test_btn = None
-        self._test_executor = None
-        self._timeout_source_id = None
 
-        self.connect("destroy", self._on_destroy)
         self.build_ui()
 
     def build_ui(self) -> None:
@@ -162,9 +157,9 @@ class SettingsWindow(Gtk.Window):
 
         # Test API button
         test_btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        self._test_btn = Gtk.Button(label="Test API")
-        self._test_btn.connect("clicked", self.on_test_api)
-        test_btn_box.pack_start(self._test_btn, False, False, 0)
+        test_btn = Gtk.Button(label="Test API")
+        test_btn.connect("clicked", self.on_test_api)
+        test_btn_box.pack_start(test_btn, False, False, 0)
 
         self.test_spinner = Gtk.Spinner()
         self.test_spinner.set_size_request(20, 20)
@@ -316,16 +311,6 @@ class SettingsWindow(Gtk.Window):
         frame.add(align)
         return frame
 
-    def _on_destroy(self, widget=None) -> None:
-        """Clean up when window is destroyed."""
-        self._test_completed = True
-        if self._timeout_source_id:
-            GLib.source_remove(self._timeout_source_id)
-            self._timeout_source_id = None
-        if self._test_executor:
-            self._test_executor.shutdown(wait=False)
-            self._test_executor = None
-
     def on_test_api(self, widget: Gtk.Widget) -> None:
         """Test translation API."""
         if not self._test_completed:
@@ -341,45 +326,36 @@ class SettingsWindow(Gtk.Window):
 
         provider_name = ProviderRegistry.get(provider).get_name()
         self.test_status_label.set_text(f"Testing {provider_name}...")
-        self.test_status_label.show()
         self.test_spinner.show()
         self.test_spinner.start()
-        self._test_btn.set_sensitive(False)
         self._test_completed = False
 
-        self._timeout_source_id = GLib.timeout_add_seconds(30, self._test_timeout, provider_name)
+        # Safety timeout: force failure after 30 seconds
+        def test_timeout():
+            if not self._test_completed:
+                GLib.idle_add(self._test_complete, False, provider_name)
+            return False
 
-        if not self._test_executor:
-            self._test_executor = concurrent.futures.ThreadPoolExecutor(
-                max_workers=1, thread_name_prefix="test_api"
-            )
+        GLib.timeout_add_seconds(30, test_timeout)
 
-        future = self._test_executor.submit(
-            self.vocab_service.test_translation_api
-        )
-        future.add_done_callback(
-            lambda f: GLib.idle_add(self._test_complete, f.result(), provider_name)
-        )
+        def run_test():
+            success = self.vocab_service.test_translation_api()
+            GLib.idle_add(self._test_complete, success, provider_name)
 
-    def _test_timeout(self, provider_name: str) -> bool:
-        """Handle test timeout (called from GLib main loop)."""
-        if not self._test_completed:
-            GLib.idle_add(self._test_complete, False, provider_name)
-        return False
+        import threading
 
-    def _test_complete(self, success: bool, provider_name: str) -> None:
-        """Handle test completion (called from GLib main loop)."""
+        thread = threading.Thread(target=run_test)
+        thread.daemon = True
+        thread.start()
+
+    def _test_complete(self, success, provider_name):
+        """Handle test completion."""
         if self._test_completed:
             return
         self._test_completed = True
 
-        if self._timeout_source_id:
-            GLib.source_remove(self._timeout_source_id)
-            self._timeout_source_id = None
-
         self.test_spinner.stop()
         self.test_spinner.hide()
-        self._test_btn.set_sensitive(True)
 
         status = "Success!" if success else "Failed!"
         detail = "works." if success else "not working."
@@ -390,7 +366,6 @@ class SettingsWindow(Gtk.Window):
     def _clear_test_status(self):
         """Clear the test status after a delay."""
         self.test_status_label.set_text("")
-        self.test_status_label.hide()
         return False
 
     def on_save_settings(self, widget: Gtk.Widget) -> None:
