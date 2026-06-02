@@ -202,7 +202,7 @@ src/
 
 ```bash
 source venv/bin/activate
-PYTHONPATH=src pytest src/tests/ -v
+pytest
 ```
 
 ### Test structure
