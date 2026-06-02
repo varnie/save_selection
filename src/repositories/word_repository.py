@@ -44,7 +44,11 @@ class WordRepository(AbstractWordRepository):
         return self.get_by_phrase(phrase) is not None
 
     def get_all(
-        self, search: Optional[str] = None, target_lang: Optional[str] = None
+        self,
+        search: Optional[str] = None,
+        target_lang: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
     ) -> list[Word]:
         """Get all words with stats."""
         lang = None
@@ -74,7 +78,10 @@ class WordRepository(AbstractWordRepository):
             else:
                 query = query.filter(ORMWord.phrase.ilike(search_term))
 
-        orm_words = query.distinct().order_by(ORMWord.phrase).all()
+        query = query.distinct().order_by(ORMWord.phrase)
+        if limit is not None:
+            query = query.limit(limit).offset(offset)
+        orm_words = query.all()
         return [mappers.map_word_with_details(w) for w in orm_words]
 
     def get_due(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:

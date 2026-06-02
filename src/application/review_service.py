@@ -37,10 +37,11 @@ class ReviewService(AbstractReviewService):
         if not words:
             return None
 
+        word_ids = [w.id for w in words]
+        review_counts = self.stats_repo.get_review_counts(word_ids)
+
         def sort_key(word: Word) -> tuple:
-            review_count = self.stats_repo.get_review_count(word.id)
-            due_date = word.due_date if word.due_date else 0
-            return (review_count, due_date)
+            return (review_counts.get(word.id, 0), word.due_date or 0)
 
         sorted_words = sorted(words, key=sort_key)
         return sorted_words[0]

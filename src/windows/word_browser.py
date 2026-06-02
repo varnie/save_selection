@@ -5,7 +5,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from datetime import datetime, timezone
 
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk
 
 from domain.entities import Word
 
@@ -26,6 +26,9 @@ class WordBrowserWindow(Gtk.Window):
         self.selected_word_id: int | None = None
         self.words: list[Word] = []
         self._updating_model: bool = False
+        self.page_size = 100
+        self.current_page = 0
+        self._search_timer_id: int | None = None
         self.set_default_size(910, 600)
         self.set_position(Gtk.WindowPosition.CENTER)
 
@@ -130,6 +133,15 @@ class WordBrowserWindow(Gtk.Window):
         self.delete_btn.set_sensitive(False)
         bottom_bar.pack_start(self.delete_btn, False, False, 0)
 
+        # Pagination
+        self.prev_btn = Gtk.Button(label="← Prev")
+        self.prev_btn.connect("clicked", self.on_prev_page)
+        bottom_bar.pack_start(self.prev_btn, False, False, 0)
+
+        self.next_btn = Gtk.Button(label="Next →")
+        self.next_btn.connect("clicked", self.on_next_page)
+        bottom_bar.pack_start(self.next_btn, False, False, 0)
+
         # Status label
         self.status_label = Gtk.Label("")
         self.status_label.set_xalign(0)
@@ -145,7 +157,12 @@ class WordBrowserWindow(Gtk.Window):
             settings = self.vocab_service.get_settings()
             lang = settings.get("target_lang", "ru")
 
-        self.words = self.vocab_service.get_words(search=search, target_lang=lang)
+        self.words = self.vocab_service.get_words(
+            search=search,
+            target_lang=lang,
+            limit=self.page_size,
+            offset=self.current_page * self.page_size,
+        )
         self.refresh_model()
 
     def refresh_model(self) -> None:
@@ -178,15 +195,32 @@ class WordBrowserWindow(Gtk.Window):
             self.model.append([i + 1, phrase, target, interval_str, due_str])
 
         total = len(self.words)
-        self.status_label.set_text(f"Showing: {total}")
+        start = self.current_page * self.page_size + 1 if total > 0 else 0
+        end = start + total - 1
+        self.status_label.set_text(f"Showing: {start}-{end}  (page {self.current_page + 1})")
+        self.prev_btn.set_sensitive(self.current_page > 0)
+        self.next_btn.set_sensitive(total == self.page_size)
         self._updating_model = False
 
     def on_search_changed(self, widget: Gtk.Widget) -> None:
-        """Handle search entry changed."""
+        """Handle search entry changed with debounce."""
+        if self._search_timer_id is not None:
+            GLib.source_remove(self._search_timer_id)
+        self._search_timer_id = GLib.timeout_add(300, self._debounced_search)
+
+    def _debounced_search(self) -> bool:
+        """Debounced search callback."""
+        self._search_timer_id = None
+        self.current_page = 0
         self.load_words()
+        return False
 
     def on_search_activate(self, widget: Gtk.Widget) -> None:
         """Handle search entry Enter key."""
+        if self._search_timer_id is not None:
+            GLib.source_remove(self._search_timer_id)
+            self._search_timer_id = None
+        self.current_page = 0
         self.load_words()
 
     def on_lang_changed(self, widget: Gtk.Widget) -> None:
@@ -195,6 +229,18 @@ class WordBrowserWindow(Gtk.Window):
 
     def on_refresh(self, widget: Gtk.Widget) -> None:
         """Handle refresh button clicked."""
+        self.current_page = 0
+        self.load_words()
+
+    def on_prev_page(self, widget: Gtk.Widget) -> None:
+        """Go to previous page."""
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.load_words()
+
+    def on_next_page(self, widget: Gtk.Widget) -> None:
+        """Go to next page."""
+        self.current_page += 1
         self.load_words()
 
     def on_cursor_changed(self, widget: Gtk.Widget) -> None:

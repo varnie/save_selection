@@ -80,9 +80,15 @@ class WordManagementService(AbstractWordManagementService):
             raise RuntimeError(msg)
         return result
 
-    def get_words(self, search: str | None = None, target_lang: str | None = None) -> list[Word]:
+    def get_words(
+        self,
+        search: str | None = None,
+        target_lang: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[Word]:
         """Get all words with optional search and language filter."""
-        return self.word_repo.get_all(search, target_lang)
+        return self.word_repo.get_all(search, target_lang, limit, offset)
 
     def get_word(self, phrase: str) -> Word | None:
         """Get word by phrase."""

@@ -159,8 +159,10 @@ class VocabApp(Gtk.Application):
                 settings = self.vocab_service.get_settings()
                 interval = int(settings.get("review_interval", 3600))
 
-                if time.time() < current_paused:
-                    self.settings_changed.wait(60)
+                now = time.time()
+                if now < current_paused:
+                    wait_time = int(current_paused - now)
+                    self.settings_changed.wait(min(wait_time, 60))
                     continue
 
                 word = self.vocab_service.get_next_word()
@@ -268,16 +270,15 @@ class VocabApp(Gtk.Application):
         self._open_window("add", create_window)
 
     def on_pause(self, widget=None) -> None:
-        """Pause reviews for 1 hour."""
+        """Toggle pause/resume reviews."""
         with self._state_lock:
-            self.paused_until = time.time() + 3600
-        self.tray.set_pause_label("Resume")
-
-    def on_resume(self, widget=None) -> None:
-        """Resume reviews."""
-        with self._state_lock:
-            self.paused_until = 0.0
-        self.tray.set_pause_label("Pause (1 hour)")
+            if self.paused_until > time.time():
+                self.paused_until = 0.0
+                self.tray.set_pause_label("Pause (1 hour)")
+            else:
+                self.paused_until = time.time() + 3600
+                self.tray.set_pause_label("Resume")
+        self.settings_changed.set()
 
     def on_settings(self, widget=None) -> None:
         """Show settings window."""

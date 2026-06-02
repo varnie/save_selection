@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Column, Float, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
 
 
@@ -51,11 +51,16 @@ class Translation(Base):
     word = relationship("Word", back_populates="translations")
     language = relationship("Language", back_populates="translations")
 
-    __table_args__ = (UniqueConstraint("word_id", "language_id", name="_word_lang_uc"),)
+    __table_args__ = (
+        UniqueConstraint("word_id", "language_id", name="_word_lang_uc"),
+        Index("idx_translation_word_id", "word_id"),
+        Index("idx_translation_language_id", "language_id"),
+    )
 
 
 class WordStats(Base):
     __tablename__ = "word_stats"
+    __table_args__ = (Index("idx_wordstats_due_date", "due_date"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     word_id = Column(
@@ -71,6 +76,10 @@ class WordStats(Base):
 
 class History(Base):
     __tablename__ = "history"
+    __table_args__ = (
+        Index("idx_history_reviewed_at", "reviewed_at"),
+        Index("idx_history_word_id", "word_id"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     word_id = Column(Integer, ForeignKey("words.id", ondelete="CASCADE"), nullable=False)

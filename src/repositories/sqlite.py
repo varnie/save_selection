@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 from infrastructure.models import Base
@@ -29,9 +29,19 @@ class SQLiteDatabase(BaseDatabase):
     def session(self) -> Session:
         return self.ScopedSession()
 
+    def _create_index(self, name: str, table: str, column: str) -> None:
+        with self.engine.connect() as conn:
+            conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({column})"))
+            conn.commit()
+
     def connect(self) -> None:
         """Connect to database and create schema."""
         Base.metadata.create_all(self.engine)
+        self._create_index("idx_wordstats_due_date", "word_stats", "due_date")
+        self._create_index("idx_history_reviewed_at", "history", "reviewed_at")
+        self._create_index("idx_history_word_id", "history", "word_id")
+        self._create_index("idx_translation_word_id", "translations", "word_id")
+        self._create_index("idx_translation_language_id", "translations", "language_id")
         self._connected = True
 
     def commit(self) -> None:

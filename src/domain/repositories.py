@@ -35,7 +35,11 @@ class AbstractWordRepository(ABC):
 
     @abstractmethod
     def get_all(
-        self, search: Optional[str] = None, target_lang: Optional[str] = None
+        self,
+        search: Optional[str] = None,
+        target_lang: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
     ) -> list[Word]:
         """Get all words with stats."""
         pass
@@ -99,6 +103,11 @@ class AbstractStatsRepository(ABC):
     @abstractmethod
     def get_review_count(self, word_id: int) -> int:
         """Get number of reviews for a word."""
+        pass
+
+    @abstractmethod
+    def get_review_counts(self, word_ids: list[int]) -> dict[int, int]:
+        """Get review counts for multiple words in one query."""
         pass
 
     @abstractmethod

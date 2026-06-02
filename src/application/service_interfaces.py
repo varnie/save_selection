@@ -36,7 +36,11 @@ class AbstractWordManagementService(ABC):
 
     @abstractmethod
     def get_words(
-        self, search: Optional[str] = None, target_lang: Optional[str] = None
+        self,
+        search: Optional[str] = None,
+        target_lang: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
     ) -> list[Word]:
         """Get all words with optional search and language filter."""
         pass
