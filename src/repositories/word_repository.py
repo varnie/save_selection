@@ -109,6 +109,24 @@ class WordRepository(AbstractWordRepository):
 
         return [mappers.map_word_with_details(w) for w in orm_words]
 
+    def get_soonest(self, limit: int = 1, target_lang: Optional[str] = None) -> list[Word]:
+        """Get words sorted by due date ascending (soonest first), no due_date filter."""
+        query = self.db.session.query(ORMWord).outerjoin(ORMWordStats)
+
+        if target_lang:
+            lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
+            if lang:
+                query = query.outerjoin(
+                    ORMTranslation,
+                    (ORMWord.id == ORMTranslation.word_id)
+                    & (ORMTranslation.language_id == lang.id),
+                ).filter(ORMTranslation.id.isnot(None))
+            else:
+                return []
+
+        orm_words = query.order_by(ORMWordStats.due_date.asc().nullsfirst()).limit(limit).all()
+        return [mappers.map_word_with_details(w) for w in orm_words]
+
     def delete(self, phrase: str) -> None:
         """Delete a word."""
         word = self.db.session.query(ORMWord).filter_by(phrase=phrase.lower()).first()

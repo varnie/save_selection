@@ -239,8 +239,8 @@ class VocabApp(Gtk.Application):
         return self.current_word.phrase if self.current_word else None
 
     def on_show_next(self, widget=None) -> None:
-        """Show next word immediately."""
-        word = self.vocab_service.get_next_word()
+        """Show next word immediately (falls back to soonest upcoming if none due)."""
+        word = self.vocab_service.get_next_word(strict=False)
         if word:
             self.current_word = word
             self.show_word_popup(word)

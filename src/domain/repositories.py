@@ -50,6 +50,11 @@ class AbstractWordRepository(ABC):
         pass
 
     @abstractmethod
+    def get_soonest(self, limit: int = 1, target_lang: Optional[str] = None) -> list[Word]:
+        """Get words sorted by due date ascending, no due_date filter."""
+        pass
+
+    @abstractmethod
     def delete(self, phrase: str) -> None:
         """Delete a word."""
         pass
@@ -127,6 +132,11 @@ class AbstractSettingsRepository(ABC):
     @abstractmethod
     def get(self, key: str, default: Optional[str] = None) -> Optional[Setting]:
         """Get a setting value."""
+        pass
+
+    @abstractmethod
+    def get_all(self) -> dict[str, str]:
+        """Get all settings as a flat dict."""
         pass
 
     @abstractmethod

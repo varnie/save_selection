@@ -94,8 +94,10 @@ class AbstractReviewService(ABC):
     """Abstract interface for review operations."""
 
     @abstractmethod
-    def get_next_word(self) -> Optional[Word]:
-        """Get next word due for review with translation in current target language."""
+    def get_next_word(self, strict: bool = True) -> Optional[Word]:
+        """Get next word due for review with translation in current target language.
+        If strict=False, fall back to the soonest upcoming word when none are due.
+        """
         pass
 
     @abstractmethod

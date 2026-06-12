@@ -1,5 +1,7 @@
 """Settings service - handles application settings."""
 
+import time
+
 from application.service_interfaces import AbstractSettingsService
 from config import DEFAULT_SETTINGS
 from domain.repositories import AbstractSettingsRepository
@@ -9,8 +11,12 @@ from infrastructure.autostart import AutostartManager
 class SettingsService(AbstractSettingsService):
     """Service for managing application settings."""
 
+    _CACHE_TTL = 30
+
     def __init__(self, settings_repo: AbstractSettingsRepository) -> None:
         self.settings_repo = settings_repo
+        self._cache: dict | None = None
+        self._cache_ts: float = 0
 
     def get_setting(self, key: str, default: str | None = None) -> str | None:
         """Get a single setting."""
@@ -19,21 +25,26 @@ class SettingsService(AbstractSettingsService):
 
     def set_setting(self, key: str, value: str) -> None:
         """Set a single setting."""
+        self._cache = None
         self.settings_repo.set(key, value)
 
     def get_settings(self) -> dict:
-        """Get app settings."""
-        review_interval = self.get_setting("review_interval")
-        source_lang = self.get_setting("source_lang")
-        target_lang = self.get_setting("target_lang")
-        translation_provider = self.get_setting("translation_provider")
+        """Get app settings (cached with TTL)."""
+        now = time.time()
+        if self._cache and now - self._cache_ts < self._CACHE_TTL:
+            return self._cache
 
-        return {
-            "review_interval": int(review_interval) if review_interval else int(DEFAULT_SETTINGS["review_interval"]),
-            "source_lang": source_lang or DEFAULT_SETTINGS["source_lang"],
-            "target_lang": target_lang or DEFAULT_SETTINGS["target_lang"],
-            "translation_provider": translation_provider or DEFAULT_SETTINGS["translation_provider"],
+        all_settings = self.settings_repo.get_all()
+
+        result = {
+            "review_interval": int(all_settings.get("review_interval", DEFAULT_SETTINGS["review_interval"])),
+            "source_lang": all_settings.get("source_lang", DEFAULT_SETTINGS["source_lang"]),
+            "target_lang": all_settings.get("target_lang", DEFAULT_SETTINGS["target_lang"]),
+            "translation_provider": all_settings.get("translation_provider", DEFAULT_SETTINGS["translation_provider"]),
         }
+        self._cache = result
+        self._cache_ts = now
+        return result
 
     def save_settings(self, settings: dict) -> None:
         """Save app settings."""

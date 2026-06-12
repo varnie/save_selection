@@ -18,7 +18,7 @@ class NotificationService:
 
     def get_next_word_notification(self) -> str | None:
         """Get next word notification body."""
-        word = self._review.get_next_word()
+        word = self._review.get_next_word(strict=False)
         if not word:
             return None
 

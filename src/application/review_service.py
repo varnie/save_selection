@@ -29,13 +29,18 @@ class ReviewService(AbstractReviewService):
         setting = self.settings_repo.get(key)
         return setting.value if setting else default
 
-    def get_next_word(self) -> Optional[Word]:
-        """Get next word due for review - least seen first, then by due date."""
+    def get_next_word(self, strict: bool = True) -> Optional[Word]:
+        """Get next word due for review - least seen first, then by due date.
+        If strict=False and no due words exist, fall back to the soonest upcoming word.
+        """
         target_lang = self._get_setting("target_lang", "ru")
         words = self.word_repo.get_due(limit=50, target_lang=target_lang)
 
         if not words:
-            return None
+            if strict:
+                return None
+            words = self.word_repo.get_soonest(limit=1, target_lang=target_lang)
+            return words[0] if words else None
 
         word_ids = [w.id for w in words]
         review_counts = self.stats_repo.get_review_counts(word_ids)

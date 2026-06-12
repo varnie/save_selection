@@ -89,3 +89,27 @@ class TestReviewService:
         second = review_service.get_next_word()
 
         assert second.id != first_id
+
+    def test_get_next_word_strict_returns_none_when_no_due(self, word_service, review_service):
+        """Test that strict mode returns None when all words have future due dates."""
+        word = word_service.add_word("future", translation="будущее")
+        review_service.review_word(word.id, quality=3)
+
+        result = review_service.get_next_word(strict=True)
+        assert result is None
+
+    def test_get_next_word_non_strict_falls_back_to_soonest(self, word_service, review_service):
+        """Test that non-strict mode returns the soonest word when none are due."""
+        word = word_service.add_word("soonest", translation="скорейший")
+        review_service.review_word(word.id, quality=3)
+
+        result = review_service.get_next_word(strict=False)
+        assert result is not None
+        assert result.id == word.id
+
+    def test_get_next_word_non_strict_returns_due_when_available(self, word_service, review_service):
+        """Test that non-strict mode still returns due words when they exist."""
+        word_service.add_word("dueword", translation="должный")
+
+        result = review_service.get_next_word(strict=False)
+        assert result is not None
