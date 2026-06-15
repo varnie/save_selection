@@ -1,9 +1,8 @@
 """Word repository - handles word CRUD operations."""
 
-from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
 
 from domain.entities import Translation, Word
 from domain.repositories import AbstractWordRepository
@@ -57,15 +56,18 @@ class WordRepository(AbstractWordRepository):
             if not lang:
                 return []
 
-        query = self.db.session.query(ORMWord).options(
-            joinedload(ORMWord.stats),
-            joinedload(ORMWord.translations).joinedload(ORMTranslation.language),
-        )
+        query = self.db.session.query(ORMWord).options(joinedload(ORMWord.stats))
 
         if lang:
             query = query.join(
                 ORMTranslation,
                 (ORMTranslation.word_id == ORMWord.id) & (ORMTranslation.language_id == lang.id),
+            ).options(
+                contains_eager(ORMWord.translations)
+            )
+        else:
+            query = query.options(
+                joinedload(ORMWord.translations).joinedload(ORMTranslation.language)
             )
 
         if search:
@@ -84,47 +86,36 @@ class WordRepository(AbstractWordRepository):
         orm_words = query.all()
         return [mappers.map_word_with_details(w) for w in orm_words]
 
-    def get_due(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:
-        """Get words due for review (due_date <= now). No sorting - done in ReviewService."""
-        now_ts = int(datetime.now(timezone.utc).timestamp())
-
+    def get_for_review(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:
+        """Get words ordered by least recently seen first (oldest review first)."""
         query = (
             self.db.session.query(ORMWord)
             .outerjoin(ORMWordStats)
-            .filter((ORMWordStats.due_date <= now_ts) | (ORMWordStats.due_date.is_(None)))
+            .options(joinedload(ORMWord.stats))
         )
 
         if target_lang:
             lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
             if lang:
-                query = query.outerjoin(
-                    ORMTranslation,
-                    (ORMWord.id == ORMTranslation.word_id)
-                    & (ORMTranslation.language_id == lang.id),
-                ).filter(ORMTranslation.id.isnot(None))
+                query = (
+                    query.join(
+                        ORMTranslation,
+                        (ORMWord.id == ORMTranslation.word_id)
+                        & (ORMTranslation.language_id == lang.id),
+                    )
+                    .join(ORMTranslation.language)
+                    .options(
+                        contains_eager(ORMWord.translations).contains_eager(ORMTranslation.language)
+                    )
+                )
             else:
                 return []
+        else:
+            query = query.options(
+                joinedload(ORMWord.translations).joinedload(ORMTranslation.language)
+            )
 
-        orm_words = query.limit(limit).all()
-
-        return [mappers.map_word_with_details(w) for w in orm_words]
-
-    def get_soonest(self, limit: int = 1, target_lang: Optional[str] = None) -> list[Word]:
-        """Get words sorted by due date ascending (soonest first), no due_date filter."""
-        query = self.db.session.query(ORMWord).outerjoin(ORMWordStats)
-
-        if target_lang:
-            lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
-            if lang:
-                query = query.outerjoin(
-                    ORMTranslation,
-                    (ORMWord.id == ORMTranslation.word_id)
-                    & (ORMTranslation.language_id == lang.id),
-                ).filter(ORMTranslation.id.isnot(None))
-            else:
-                return []
-
-        orm_words = query.order_by(ORMWordStats.due_date.asc().nullsfirst()).limit(limit).all()
+        orm_words = query.order_by(ORMWordStats.last_reviewed.asc().nullsfirst()).limit(limit).all()
         return [mappers.map_word_with_details(w) for w in orm_words]
 
     def delete(self, phrase: str) -> None:

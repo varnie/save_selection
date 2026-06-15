@@ -15,19 +15,19 @@ class TestReviewService:
         """Test that review updates word interval."""
         word = word_service.add_word("review", translation="проверка")
 
-        review_service.review_word(word.id, quality=4)
+        review_service.review_word(word.id)
 
-    def test_review_word_quality_0_resets_interval(self, word_service, review_service):
-        """Test that quality 0 resets interval to 1 day."""
+    def test_review_word_resets_interval(self, word_service, review_service):
+        """Test that skip resets interval to 1 day."""
         word = word_service.add_word("hard", translation="трудно")
 
-        review_service.review_word(word.id, quality=0)
+        review_service.skip_word(word.id)
 
-    def test_review_word_quality_5_increases_ease(self, word_service, review_service):
-        """Test that quality 5 increases ease factor."""
+    def test_review_word_increases_ease(self, word_service, review_service):
+        """Test that review increases ease factor."""
         word = word_service.add_word("easy", translation="легко")
 
-        review_service.review_word(word.id, quality=5)
+        review_service.review_word(word.id)
 
     def test_skip_word_moves_to_end(self, word_service, review_service):
         """Test that skip moves word to end of queue."""
@@ -42,7 +42,7 @@ class TestReviewService:
         assert isinstance(stats, dict)
         assert "total_words" in stats
         assert "today_reviews" in stats
-        assert "due_count" in stats
+        assert "short_interval" in stats
 
     def test_format_interval_days(self, review_service):
         """Test interval formatting."""
@@ -70,7 +70,7 @@ class TestReviewService:
         first = review_service.get_next_word()
         assert first is not None
 
-        review_service.review_word(word1.id, quality=3)
+        review_service.review_word(word1.id)
 
         second = review_service.get_next_word()
         assert second is not None
@@ -84,32 +84,15 @@ class TestReviewService:
         first = review_service.get_next_word()
         first_id = first.id
 
-        review_service.review_word(first_id, quality=3)
+        review_service.review_word(first_id)
 
         second = review_service.get_next_word()
 
         assert second.id != first_id
 
-    def test_get_next_word_strict_returns_none_when_no_due(self, word_service, review_service):
-        """Test that strict mode returns None when all words have future due dates."""
-        word = word_service.add_word("future", translation="будущее")
-        review_service.review_word(word.id, quality=3)
+    def test_get_next_word_returns_word_when_available(self, word_service, review_service):
+        """Test that get_next_word returns a word when one exists."""
+        word_service.add_word("available", translation="доступный")
 
-        result = review_service.get_next_word(strict=True)
-        assert result is None
-
-    def test_get_next_word_non_strict_falls_back_to_soonest(self, word_service, review_service):
-        """Test that non-strict mode returns the soonest word when none are due."""
-        word = word_service.add_word("soonest", translation="скорейший")
-        review_service.review_word(word.id, quality=3)
-
-        result = review_service.get_next_word(strict=False)
-        assert result is not None
-        assert result.id == word.id
-
-    def test_get_next_word_non_strict_returns_due_when_available(self, word_service, review_service):
-        """Test that non-strict mode still returns due words when they exist."""
-        word_service.add_word("dueword", translation="должный")
-
-        result = review_service.get_next_word(strict=False)
+        result = review_service.get_next_word()
         assert result is not None

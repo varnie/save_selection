@@ -55,23 +55,26 @@ class Translation(Base):
         UniqueConstraint("word_id", "language_id", name="_word_lang_uc"),
         Index("idx_translation_word_id", "word_id"),
         Index("idx_translation_language_id", "language_id"),
+        Index("idx_translation_word_lang", "word_id", "language_id"),
     )
 
 
 class WordStats(Base):
     __tablename__ = "word_stats"
-    __table_args__ = (Index("idx_wordstats_due_date", "due_date"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     word_id = Column(
         Integer, ForeignKey("words.id", ondelete="CASCADE"), nullable=False, unique=True
     )
     interval_days = Column(Integer, nullable=False, default=1)
-    due_date = Column(Integer, nullable=False, default=_utc_timestamp)
     ease_factor = Column(Float, nullable=False, default=2.5)
     last_reviewed = Column(Integer, nullable=True)
 
     word = relationship("Word", back_populates="stats")
+
+    __table_args__ = (
+        Index("idx_word_stats_last_reviewed", "last_reviewed"),
+    )
 
 
 class History(Base):

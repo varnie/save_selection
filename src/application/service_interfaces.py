@@ -94,20 +94,18 @@ class AbstractReviewService(ABC):
     """Abstract interface for review operations."""
 
     @abstractmethod
-    def get_next_word(self, strict: bool = True) -> Optional[Word]:
-        """Get next word due for review with translation in current target language.
-        If strict=False, fall back to the soonest upcoming word when none are due.
-        """
+    def get_next_word(self) -> Optional[Word]:
+        """Get next word for review with translation in current target language."""
         pass
 
     @abstractmethod
-    def review_word(self, word_id: int, quality: int = 3) -> None:
-        """Review a word with SM-2 quality rating (0-5)."""
+    def review_word(self, word_id: int) -> None:
+        """Review a word (update last_reviewed and interval via SM-2)."""
         pass
 
     @abstractmethod
     def skip_word(self, word_id: int) -> None:
-        """Skip word - move to end of queue by updating due date."""
+        """Skip word - move to end of queue by marking as reviewed."""
         pass
 
     @abstractmethod

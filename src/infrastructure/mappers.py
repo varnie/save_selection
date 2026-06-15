@@ -58,8 +58,8 @@ def map_word_with_details(orm: ORMWord) -> Word:
 
     if orm.stats:
         word.interval_days = orm.stats.interval_days
-        word.due_date = orm.stats.due_date
         word.ease_factor = orm.stats.ease_factor
+        word.last_reviewed = orm.stats.last_reviewed
 
     return word
 
@@ -91,7 +91,6 @@ def map_word_stats(orm: ORMWordStats) -> WordStats:
         id=orm.id,
         word_id=orm.word_id,
         interval_days=orm.interval_days,
-        due_date=orm.due_date,
         ease_factor=orm.ease_factor,
         last_reviewed=orm.last_reviewed,
     )
@@ -132,7 +131,6 @@ def map_stats(data: dict[str, Any]) -> Stats:
         today_words=data.get("today_words", 0),
         today_reviews=data.get("today_reviews", 0),
         total_reviews=data.get("total_reviews", 0),
-        due_count=data.get("due_count", 0),
         short_interval=data.get("short_interval", 0),
         long_interval=data.get("long_interval", 0),
         streak=data.get("streak", 0),

@@ -23,23 +23,22 @@ class StatsRepository(AbstractStatsRepository):
         self.db = db
 
     def update_word_stats(
-        self, word_id: int, interval_days: int, due_date: int, ease_factor: float
+        self, word_id: int, interval_days: int, ease_factor: float
     ) -> None:
         """Update word stats."""
+        now = int(datetime.now(timezone.utc).timestamp())
         stats = self.db.session.query(ORMWordStats).filter_by(word_id=word_id).first()
 
         if stats:
             stats.interval_days = interval_days
-            stats.due_date = due_date
             stats.ease_factor = ease_factor
-            stats.last_reviewed = int(datetime.now(timezone.utc).timestamp())
+            stats.last_reviewed = now
         else:
             stats = ORMWordStats(
                 word_id=word_id,
                 interval_days=interval_days,
-                due_date=due_date,
                 ease_factor=ease_factor,
-                last_reviewed=int(datetime.now(timezone.utc).timestamp()),
+                last_reviewed=now,
             )
             self.db.session.add(stats)
 
@@ -82,60 +81,55 @@ class StatsRepository(AbstractStatsRepository):
         """Get overall statistics."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         today_start = int(datetime(now.year, now.month, now.day).timestamp())
+        today_date = now.date()
 
-        total = (
-            self.db.session.query(func.count(func.distinct(ORMTranslation.word_id))).scalar() or 0
-        )
+        db = self.db.session
 
-        today_words = (
-            self.db.session.query(func.count(func.distinct(ORMWord.id)))
-            .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
-            .filter(ORMWord.created_at >= today_start)
-            .scalar()
-            or 0
-        )
-
-        today_reviews = (
-            self.db.session.query(func.count(ORMHistory.id))
-            .filter(ORMHistory.reviewed_at >= today_start)
-            .scalar()
-            or 0
-        )
-
-        total_reviews = self.db.session.query(func.count(ORMHistory.id)).scalar() or 0
-
-        now_ts = int(datetime.now(timezone.utc).timestamp())
-
-        due_count = (
-            self.db.session.query(func.count(ORMWordStats.id))
-            .filter(ORMWordStats.due_date <= now_ts)
-            .scalar()
-            or 0
-        )
-
-        def interval_count(op) -> int:
-            # Use LEFT JOIN to include words without stats (treat as learning/short)
-            # This counts ALL words with translations, not just those with stats
-            return (
-                self.db.session.query(func.count(func.distinct(ORMWord.id)))
-                .select_from(ORMWord)
-                .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
-                .outerjoin(ORMWordStats, ORMWord.id == ORMWordStats.word_id)
-                .filter(op)
-                .scalar()
-                or 0
+        # Combined: total words + today's new words
+        total_today = (
+            db.query(
+                func.count(func.distinct(ORMTranslation.word_id)).label("total"),
+                func.count(func.distinct(ORMWord.id)).filter(ORMWord.created_at >= today_start).label("today_words"),
             )
-
-        # Learning (≤7 days): include words with interval ≤ 7 OR no stats (new words)
-        short_interval = interval_count(
-            (ORMWordStats.interval_days <= 7) | (ORMWordStats.interval_days.is_(None))
+            .select_from(ORMWord)
+            .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
+            .first()
         )
-        # Mastered (>7 days): only words with interval > 7 (definitely mastered)
-        long_interval = interval_count(ORMWordStats.interval_days > 7)
+        total = total_today.total or 0
+        today_words = total_today.today_words or 0
 
-        today_date = datetime.now(timezone.utc).date()
+        # Combined: total reviews + today's reviews
+        review_counts = (
+            db.query(
+                func.count(ORMHistory.id).label("total_reviews"),
+                func.count(ORMHistory.id).filter(ORMHistory.reviewed_at >= today_start).label("today_reviews"),
+            )
+            .first()
+        )
+        total_reviews = review_counts.total_reviews or 0
+        today_reviews = review_counts.today_reviews or 0
+
+        # Combined: short_interval + long_interval in one query
+        interval_stats = (
+            db.query(
+                func.count(func.distinct(ORMWord.id))
+                .filter((ORMWordStats.interval_days <= 7) | (ORMWordStats.interval_days.is_(None)))
+                .label("short_interval"),
+                func.count(func.distinct(ORMWord.id))
+                .filter(ORMWordStats.interval_days > 7)
+                .label("long_interval"),
+            )
+            .select_from(ORMWord)
+            .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
+            .outerjoin(ORMWordStats, ORMWord.id == ORMWordStats.word_id)
+            .first()
+        )
+        short_interval = interval_stats.short_interval or 0
+        long_interval = interval_stats.long_interval or 0
+
+        # Streak — single query for distinct review dates
         rows = (
-            self.db.session.query(func.date(ORMHistory.reviewed_at, "unixepoch").label("day"))
+            db.query(func.date(ORMHistory.reviewed_at, "unixepoch").label("day"))
             .distinct()
             .order_by(func.date(ORMHistory.reviewed_at, "unixepoch").desc())
             .all()
@@ -155,7 +149,6 @@ class StatsRepository(AbstractStatsRepository):
                 "today_words": today_words,
                 "today_reviews": today_reviews,
                 "total_reviews": total_reviews,
-                "due_count": due_count,
                 "short_interval": short_interval,
                 "long_interval": long_interval,
                 "streak": streak,

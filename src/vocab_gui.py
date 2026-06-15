@@ -209,7 +209,7 @@ class VocabApp(Gtk.Application):
             body += f"\n→ {translation} [{abbrev}]"
 
         self._set_current_phrase(word.phrase)
-        self.vocab_service.review_word(word.id, quality=3)
+        self.vocab_service.review_word(word.id)
         self.notify(body)
 
     def check_wotd(self) -> None:
@@ -240,7 +240,7 @@ class VocabApp(Gtk.Application):
 
     def on_show_next(self, widget=None) -> None:
         """Show next word immediately (falls back to soonest upcoming if none due)."""
-        word = self.vocab_service.get_next_word(strict=False)
+        word = self.vocab_service.get_next_word()
         if word:
             self.current_word = word
             self.show_word_popup(word)

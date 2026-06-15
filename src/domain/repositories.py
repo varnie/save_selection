@@ -45,13 +45,8 @@ class AbstractWordRepository(ABC):
         pass
 
     @abstractmethod
-    def get_due(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:
-        """Get words due for review."""
-        pass
-
-    @abstractmethod
-    def get_soonest(self, limit: int = 1, target_lang: Optional[str] = None) -> list[Word]:
-        """Get words sorted by due date ascending, no due_date filter."""
+    def get_for_review(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:
+        """Get next words for review, ordered by least recently seen first."""
         pass
 
     @abstractmethod
@@ -90,7 +85,7 @@ class AbstractStatsRepository(ABC):
 
     @abstractmethod
     def update_word_stats(
-        self, word_id: int, interval_days: int, due_date: int, ease_factor: float
+        self, word_id: int, interval_days: int, ease_factor: float
     ) -> None:
         """Update word stats."""
         pass

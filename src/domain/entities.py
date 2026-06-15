@@ -13,8 +13,8 @@ class Word:
     translation: str = ""
     language_code: str = ""
     interval_days: int = 1
-    due_date: int = 0
     ease_factor: float = 2.5
+    last_reviewed: int | None = None
 
 
 @dataclass
@@ -45,7 +45,6 @@ class WordStats:
     id: int = 0
     word_id: int = 0
     interval_days: int = 1
-    due_date: int = 0
     ease_factor: float = 2.5
     last_reviewed: int | None = None
 
@@ -86,7 +85,6 @@ class Stats:
     today_words: int = 0
     today_reviews: int = 0
     total_reviews: int = 0
-    due_count: int = 0
     short_interval: int = 0
     long_interval: int = 0
     streak: int = 0

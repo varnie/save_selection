@@ -65,18 +65,19 @@ class WordBrowserWindow(Gtk.Window):
 
         # Get word counts per language
         lang_counts = self.vocab_service.get_language_counts()
-
-        # Current language count
-        current_count = lang_counts.get(current_lang, (None, 0))[1] if current_lang else 0
-
-        # Only add current language if it has words
-        if current_count > 0:
-            self.lang_combo.append(current_lang, f"{current_lang.upper()} ({current_count})")
-
-        # Sort languages alphabetically and add with counts
         languages = self.vocab_service.get_languages()
         sorted_languages = sorted(languages, key=lambda lang: lang.name)
+        lang_names = {lang.code: lang.name for lang in languages}
 
+        # Current language count and name
+        current_name, current_count = lang_counts.get(current_lang, (None, 0)) if current_lang else (None, 0)
+        if not current_name:
+            current_name = lang_names.get(current_lang, current_lang.upper() if current_lang else "")
+
+        if current_count > 0:
+            self.lang_combo.append(current_lang, f"{current_name} ({current_count})")
+
+        # Sort languages alphabetically and add with counts
         for lang in sorted_languages:
             if lang.code == current_lang:
                 continue
@@ -109,7 +110,7 @@ class WordBrowserWindow(Gtk.Window):
             ("Word", 300),
             ("Translation", 300),
             ("Interval", 100),
-            ("Due Date", 120),
+            ("Last reviewed", 120),
         ]
 
         for i, (title, width) in enumerate(columns):
@@ -173,9 +174,8 @@ class WordBrowserWindow(Gtk.Window):
             phrase = word.phrase
             target = word.translation
             interval = word.interval_days
-            due_date = word.due_date
+            last_reviewed_ts = word.last_reviewed
 
-            # Format interval
             if interval == 1:
                 interval_str = "1 day"
             elif interval < 30:
@@ -185,14 +185,13 @@ class WordBrowserWindow(Gtk.Window):
             else:
                 interval_str = f"{interval // 365} yr"
 
-            # Format due date
-            if due_date:
-                due = datetime.fromtimestamp(due_date, tz=timezone.utc)
-                due_str = due.strftime("%Y-%m-%d")
+            if last_reviewed_ts:
+                lr = datetime.fromtimestamp(last_reviewed_ts, tz=timezone.utc)
+                last_reviewed_str = lr.strftime("%Y-%m-%d")
             else:
-                due_str = "New"
+                last_reviewed_str = "Never"
 
-            self.model.append([i + 1, phrase, target, interval_str, due_str])
+            self.model.append([i + 1, phrase, target, interval_str, last_reviewed_str])
 
         total = len(self.words)
         start = self.current_page * self.page_size + 1 if total > 0 else 0
@@ -320,16 +319,20 @@ class WordBrowserWindow(Gtk.Window):
 
         # Get all languages and update counts
         languages = self.vocab_service.get_languages()
+        sorted_languages = sorted(languages, key=lambda lang: lang.name)
+        lang_names = {lang.code: lang.name for lang in languages}
 
         self.lang_combo.remove_all()
 
         # Add selected language first (only if has words)
-        selected_count = lang_counts.get(selected_lang, (None, 0))[1] if selected_lang else 0
+        selected_name, selected_count = lang_counts.get(selected_lang, (None, 0)) if selected_lang else (None, 0)
+        if not selected_name:
+            selected_name = lang_names.get(selected_lang, selected_lang.upper() if selected_lang else "")
+
         if selected_count > 0:
-            self.lang_combo.append(selected_lang, f"{selected_lang.upper()} ({selected_count})")
+            self.lang_combo.append(selected_lang, f"{selected_name} ({selected_count})")
 
         # Add other languages
-        sorted_languages = sorted(languages, key=lambda lang: lang.name)
         for lang in sorted_languages:
             if lang.code == selected_lang:
                 continue

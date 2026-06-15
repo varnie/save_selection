@@ -58,10 +58,6 @@ class StatsWindow(Gtk.Window):
         sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         box.pack_start(sep, False, False, 10)
 
-        # Due/overdue
-        row = self._make_row("Due/overdue:", str(stats.get("due_count", 0)))
-        box.pack_start(row, False, False, 0)
-
         # Short interval
         row = self._make_row("Learning (≤7 days):", str(stats.get("short_interval", 0)))
         box.pack_start(row, False, False, 0)

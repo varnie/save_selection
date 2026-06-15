@@ -18,7 +18,7 @@ class NotificationService:
 
     def get_next_word_notification(self) -> str | None:
         """Get next word notification body."""
-        word = self._review.get_next_word(strict=False)
+        word = self._review.get_next_word()
         if not word:
             return None
 
@@ -37,6 +37,6 @@ class NotificationService:
         with open(TEMP_PHRASE_FILE, "w") as f:
             f.write(phrase)
 
-        self._review.review_word(word.id, quality=3)
+        self._review.review_word(word.id)
 
         return body
