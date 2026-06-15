@@ -1,6 +1,5 @@
 """Review service - handles spaced repetition review logic."""
 
-from typing import Optional
 
 from application.service_interfaces import AbstractReviewService
 from domain.entities import Word
@@ -28,7 +27,7 @@ class ReviewService(AbstractReviewService):
         setting = self.settings_repo.get(key)
         return setting.value if setting else default
 
-    def get_next_word(self) -> Optional[Word]:
+    def get_next_word(self) -> Word | None:
         """Get next word for review - least recently seen first, then by review count."""
         target_lang = self._get_setting("target_lang", "ru")
         words = self.word_repo.get_for_review(limit=50, target_lang=target_lang)

@@ -1,7 +1,6 @@
 """Statistics repository - handles review stats and history."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from sqlalchemy import func
 
@@ -44,7 +43,7 @@ class StatsRepository(AbstractStatsRepository):
 
         self.db.commit()
 
-    def get_word_stats(self, word_id: int) -> Optional[WordStats]:
+    def get_word_stats(self, word_id: int) -> WordStats | None:
         """Get stats for a word."""
         orm = self.db.session.query(ORMWordStats).filter_by(word_id=word_id).first()
         if not orm:

@@ -1,7 +1,6 @@
 """Abstract service interfaces - application layer defines contracts."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from domain.entities import Word
 
@@ -28,7 +27,7 @@ class AbstractWordManagementService(ABC):
     def add_word(
         self,
         phrase: str,
-        translation: Optional[str] = None,
+        translation: str | None = None,
         auto_translate: bool = False,
     ) -> Word:
         """Add a new word or add translation to existing word."""
@@ -37,21 +36,21 @@ class AbstractWordManagementService(ABC):
     @abstractmethod
     def get_words(
         self,
-        search: Optional[str] = None,
-        target_lang: Optional[str] = None,
-        limit: Optional[int] = None,
+        search: str | None = None,
+        target_lang: str | None = None,
+        limit: int | None = None,
         offset: int = 0,
     ) -> list[Word]:
         """Get all words with optional search and language filter."""
         pass
 
     @abstractmethod
-    def get_translation(self, word_id: int) -> Optional[str]:
+    def get_translation(self, word_id: int) -> str | None:
         """Get translation for a word."""
         pass
 
     @abstractmethod
-    def get_translation_with_lang(self, word_id: int) -> tuple[Optional[str], Optional[str]]:
+    def get_translation_with_lang(self, word_id: int) -> tuple[str | None, str | None]:
         """Get translation and its language code."""
         pass
 
@@ -61,7 +60,7 @@ class AbstractWordManagementService(ABC):
         pass
 
     @abstractmethod
-    def update_word(self, word_id: int, phrase: str, translation: Optional[str] = None) -> None:
+    def update_word(self, word_id: int, phrase: str, translation: str | None = None) -> None:
         """Update word phrase and optionally translation."""
         pass
 
@@ -94,7 +93,7 @@ class AbstractReviewService(ABC):
     """Abstract interface for review operations."""
 
     @abstractmethod
-    def get_next_word(self) -> Optional[Word]:
+    def get_next_word(self) -> Word | None:
         """Get next word for review with translation in current target language."""
         pass
 
@@ -128,7 +127,7 @@ class AbstractSettingsService(ABC):
     """Abstract interface for settings operations."""
 
     @abstractmethod
-    def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_setting(self, key: str, default: str | None = None) -> str | None:
         """Get a single setting."""
         pass
 
@@ -162,13 +161,13 @@ class AbstractWOTDService(ABC):
         pass
 
     @abstractmethod
-    def get_word_of_the_day(self) -> Optional[Word]:
+    def get_word_of_the_day(self) -> Word | None:
         """Get Word of the Day - adds to vocab and returns Word entity."""
         pass
 
     @abstractmethod
     def save_wotd_to_vocab(
-        self, word: str, translation: Optional[str] = None
-    ) -> tuple[Optional[Word], bool]:
+        self, word: str, translation: str | None = None
+    ) -> tuple[Word | None, bool]:
         """Save WOTD word to user's vocabulary."""
         pass

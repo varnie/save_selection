@@ -25,7 +25,6 @@ class WordBrowserWindow(Gtk.Window):
         self.vocab_service = vocab_service
         self.selected_word_id: int | None = None
         self.words: list[Word] = []
-        self._updating_model: bool = False
         self.page_size = 100
         self.current_page = 0
         self._search_timer_id: int | None = None
@@ -199,7 +198,6 @@ class WordBrowserWindow(Gtk.Window):
         self.status_label.set_text(f"Showing: {start}-{end}  (page {self.current_page + 1})")
         self.prev_btn.set_sensitive(self.current_page > 0)
         self.next_btn.set_sensitive(total == self.page_size)
-        self._updating_model = False
 
     def on_search_changed(self, widget: Gtk.Widget) -> None:
         """Handle search entry changed with debounce."""

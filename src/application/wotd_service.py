@@ -1,6 +1,6 @@
 """WOTD service - handles Word of the Day functionality."""
 
-from typing import Optional
+import logging
 
 from application.service_interfaces import (
     AbstractTranslationService,
@@ -9,7 +9,10 @@ from application.service_interfaces import (
 )
 from domain.entities import Word
 from domain.repositories import AbstractSettingsRepository, AbstractWOTDRepository
+from infrastructure.translation import TranslationError
 from wotd import WordSourceType, get_word_source
+
+logger = logging.getLogger(__name__)
 
 
 class WOTDService(AbstractWOTDService):
@@ -40,7 +43,7 @@ class WOTDService(AbstractWOTDService):
         """Get the configured WOTD level."""
         return self._get_setting("wotd_level", "B2")
 
-    def get_word_of_the_day(self) -> Optional[Word]:
+    def get_word_of_the_day(self) -> Word | None:
         """Get Word of the Day - adds to vocab and returns Word entity."""
         if not self.is_wotd_enabled():
             return None
@@ -62,9 +65,13 @@ class WOTDService(AbstractWOTDService):
         source_lang = self._get_setting("source_lang", "en")
         target_lang = self._get_setting("target_lang", "ru")
 
-        translation = self.translation_service.translate(
-            word, target_lang, source_lang, provider_name
-        )
+        try:
+            translation = self.translation_service.translate(
+                word, target_lang, source_lang, provider_name
+            )
+        except TranslationError:
+            logger.warning("WOTD translation failed for '%s', skipping", word)
+            return None
 
         if not translation:
             return None
@@ -75,8 +82,8 @@ class WOTDService(AbstractWOTDService):
         return word_entity
 
     def save_wotd_to_vocab(
-        self, word: str, translation: Optional[str] = None
-    ) -> tuple[Optional[Word], bool]:
+        self, word: str, translation: str | None = None
+    ) -> tuple[Word | None, bool]:
         """Save WOTD word to user's vocabulary."""
         try:
             result = self.word_service.add_word(
@@ -84,5 +91,5 @@ class WOTDService(AbstractWOTDService):
             )
             return result, True
         except Exception as e:
-            print(f"Failed to save WOTD to vocab: {e}")
+            logger.exception("Failed to save WOTD to vocab: %s", e)
             return None, False

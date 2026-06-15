@@ -5,7 +5,6 @@ import os
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Optional
 
 
 class WordSourceType(Enum):
@@ -20,7 +19,7 @@ class WordSource(ABC):
     """Abstract base class for word sources."""
 
     @abstractmethod
-    def get_word(self, level: str) -> Optional[dict]:
+    def get_word(self, level: str) -> dict | None:
         """Get a random word for the given level.
 
         Returns:
@@ -51,7 +50,7 @@ class LocalWordSource(WordSource):
         except (FileNotFoundError, json.JSONDecodeError):
             return {}
 
-    def get_word(self, level: str) -> Optional[dict]:
+    def get_word(self, level: str) -> dict | None:
         """Get a random word for the given level."""
         level = level.upper()
         words = self.words.get(level, [])
@@ -78,12 +77,12 @@ class OnlineWordSource(WordSource):
         self.api_url = None
         self.api_key = None
 
-    def configure(self, api_url: str, api_key: Optional[str] = None):
+    def configure(self, api_url: str, api_key: str | None = None):
         """Configure the online source."""
         self.api_url = api_url
         self.api_key = api_key
 
-    def get_word(self, level: str) -> Optional[dict]:
+    def get_word(self, level: str) -> dict | None:
         """Get a random word from online source.
 
         Note: Not yet implemented - returns None.

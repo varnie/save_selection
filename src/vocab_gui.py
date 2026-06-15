@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Main vocab GUI application with system tray."""
 
+import logging
 import os
 import sys
 import threading
@@ -19,6 +20,8 @@ from windows.add_word import AddWordDialog
 from windows.settings import SettingsWindow
 from windows.stats import StatsWindow
 from windows.word_browser import WordBrowserWindow
+
+logger = logging.getLogger(__name__)
 
 
 def _create_tray():
@@ -61,7 +64,7 @@ class VocabApp(Gtk.Application):
         try:
             self.vocab_service = create_vocab_service(self.config_file)
         except Exception as e:
-            print(f"Error creating vocab_service: {e}")
+            logger.exception("Error creating vocab_service: %s", e)
             import traceback
 
             traceback.print_exc()
@@ -149,6 +152,8 @@ class VocabApp(Gtk.Application):
 
     def review_loop(self) -> None:
         """Background review loop."""
+        consecutive_errors = 0
+        max_errors = 3
         while True:
             with self._state_lock:
                 if not self.running:
@@ -167,7 +172,8 @@ class VocabApp(Gtk.Application):
 
                 word = self.vocab_service.get_next_word()
                 if word:
-                    self.current_word = word
+                    with self._state_lock:
+                        self.current_word = word
                     self.show_word_popup(word)
                     for _ in range(interval // 60):
                         with self._state_lock:
@@ -179,8 +185,14 @@ class VocabApp(Gtk.Application):
                     self.settings_changed.wait(300)
                     self.settings_changed.clear()
 
+                consecutive_errors = 0
+
             except Exception as e:
-                print(f"Review loop error: {e}")
+                consecutive_errors += 1
+                logger.exception("Review loop error (%d/%d): %s", consecutive_errors, max_errors, e)
+                if consecutive_errors >= max_errors:
+                    logger.critical("Too many review loop errors, stopping")
+                    break
                 self.settings_changed.wait(60)
 
         self.vocab_service.remove_session()
@@ -221,7 +233,7 @@ class VocabApp(Gtk.Application):
                 body = f"<b>{word.phrase}</b>\n→ {word.translation}"
                 self.notify(body, "Word of the Day")
         except Exception as e:
-            print(f"WOTD error: {e}")
+            logger.exception("WOTD error: %s", e)
         finally:
             self.vocab_service.remove_session()
 
@@ -236,13 +248,15 @@ class VocabApp(Gtk.Application):
         if os.path.exists(TEMP_PHRASE_FILE):
             with open(TEMP_PHRASE_FILE) as f:
                 return f.read().strip()
-        return self.current_word.phrase if self.current_word else None
+        with self._state_lock:
+            return self.current_word.phrase if self.current_word else None
 
     def on_show_next(self, widget=None) -> None:
         """Show next word immediately (falls back to soonest upcoming if none due)."""
         word = self.vocab_service.get_next_word()
         if word:
-            self.current_word = word
+            with self._state_lock:
+                self.current_word = word
             self.show_word_popup(word)
             self.tray.set_label(str(word.phrase)[:20])
 

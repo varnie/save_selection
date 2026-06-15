@@ -1,7 +1,6 @@
 """Settings and WOTD repositories."""
 
 from datetime import datetime, timezone
-from typing import Optional
 
 from domain.entities import Language, Setting
 from domain.entities import WOTDHistory as WOTDHistoryEntity
@@ -29,7 +28,7 @@ class SettingsRepository(AbstractSettingsRepository):
     def __init__(self, db: AbstractDatabase):
         self.db = db
 
-    def get(self, key: str, default: Optional[str] = None) -> Optional[Setting]:
+    def get(self, key: str, default: str | None = None) -> Setting | None:
         """Get a setting value as domain entity."""
         orm = self.db.session.query(ORMSetting).filter_by(key=key).first()
         if orm:
@@ -58,7 +57,7 @@ class LanguageRepository(AbstractLanguageRepository):
     def __init__(self, db: AbstractDatabase):
         self.db = db
 
-    def get_by_code(self, code: str) -> Optional[Language]:
+    def get_by_code(self, code: str) -> Language | None:
         """Get language by code."""
         orm = self.db.session.query(ORMLanguage).filter_by(code=code).first()
         if orm:
@@ -108,7 +107,7 @@ class WOTDRepository(AbstractWOTDRepository):
         self.db.session.add(orm)
         self.db.commit()
 
-    def get_today(self) -> Optional[WOTDHistoryEntity]:
+    def get_today(self) -> WOTDHistoryEntity | None:
         """Get today's WOTD if shown, or None (UTC)."""
         today = datetime.now(timezone.utc).replace(tzinfo=None).strftime("%Y-%m-%d")
         orm = self.db.session.query(ORMWOTDHistory).filter_by(shown_date=today).first()

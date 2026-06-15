@@ -1,5 +1,7 @@
 """Word management service - handles word CRUD operations."""
 
+import logging
+
 from application.service_interfaces import (
     AbstractTranslationService,
     AbstractWordManagementService,
@@ -10,6 +12,9 @@ from domain.repositories import (
     AbstractSettingsRepository,
     AbstractWordRepository,
 )
+from infrastructure.translation import TranslationError
+
+logger = logging.getLogger(__name__)
 
 
 class WordManagementService(AbstractWordManagementService):
@@ -68,9 +73,13 @@ class WordManagementService(AbstractWordManagementService):
             elif auto_translate:
                 provider_name = self._get_setting("translation_provider", "google_direct")
                 source_lang = self._get_source_lang()
-                trans = self.translation_service.translate(
-                    phrase, target_lang, source_lang, provider_name
-                )
+                try:
+                    trans = self.translation_service.translate(
+                        phrase, target_lang, source_lang, provider_name
+                    )
+                except TranslationError:
+                    logger.warning("Auto-translate failed for '%s', skipping", phrase)
+                    trans = None
                 if trans:
                     self.word_repo.add_translation(word_id, trans, target_lang)
 

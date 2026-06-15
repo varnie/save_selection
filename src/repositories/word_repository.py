@@ -1,6 +1,5 @@
 """Word repository - handles word CRUD operations."""
 
-from typing import Optional
 
 from sqlalchemy.orm import contains_eager, joinedload
 
@@ -31,9 +30,17 @@ class WordRepository(AbstractWordRepository):
         self.db.commit()
         return mappers.map_word(orm_word)
 
-    def get_by_phrase(self, phrase: str) -> Optional[Word]:
+    def get_by_phrase(self, phrase: str) -> Word | None:
         """Get word by phrase."""
-        orm_word = self.db.session.query(ORMWord).filter_by(phrase=phrase.lower()).first()
+        orm_word = (
+            self.db.session.query(ORMWord)
+            .options(
+                joinedload(ORMWord.stats),
+                joinedload(ORMWord.translations).joinedload(ORMTranslation.language),
+            )
+            .filter_by(phrase=phrase.lower())
+            .first()
+        )
         if not orm_word:
             return None
         return mappers.map_word_with_details(orm_word)
@@ -44,9 +51,9 @@ class WordRepository(AbstractWordRepository):
 
     def get_all(
         self,
-        search: Optional[str] = None,
-        target_lang: Optional[str] = None,
-        limit: Optional[int] = None,
+        search: str | None = None,
+        target_lang: str | None = None,
+        limit: int | None = None,
         offset: int = 0,
     ) -> list[Word]:
         """Get all words with stats."""
@@ -86,7 +93,7 @@ class WordRepository(AbstractWordRepository):
         orm_words = query.all()
         return [mappers.map_word_with_details(w) for w in orm_words]
 
-    def get_for_review(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:
+    def get_for_review(self, limit: int = 20, target_lang: str | None = None) -> list[Word]:
         """Get words ordered by least recently seen first (oldest review first)."""
         query = (
             self.db.session.query(ORMWord)
@@ -145,7 +152,7 @@ class WordRepository(AbstractWordRepository):
 
         self.db.commit()
 
-    def get_translation(self, word_id: int, target_lang: str = "ru") -> Optional[Translation]:
+    def get_translation(self, word_id: int, target_lang: str = "ru") -> Translation | None:
         """Get translation for a word as domain entity."""
         lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
         if not lang:

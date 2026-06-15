@@ -293,13 +293,6 @@ class SettingsWindow(Gtk.Window):
         footer_label.set_selectable(True)
         box.pack_start(footer_label, False, False, 0)
 
-    def _make_section(self, title: str) -> Gtk.Label:
-        """Make a section header."""
-        label = Gtk.Label()
-        label.set_markup(f"<b>{title}</b>")
-        label.set_xalign(0)
-        return label
-
     def _make_frame(self, title: str, content: Gtk.Widget) -> Gtk.Frame:
         """Wrap content in a frame with a border."""
         frame = Gtk.Frame(label=title)

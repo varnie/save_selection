@@ -1,7 +1,7 @@
 """Application layer - service factory and configuration utilities."""
 
+import logging
 import os
-from typing import Optional
 
 from application.export_service import ExportService
 from application.factory import ServiceFactory
@@ -31,6 +31,8 @@ from repositories import (
     WOTDRepository,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def get_db_path(config_file: str = CONFIG_FILE) -> str:
     """Determine DB path from config file or default."""
@@ -51,14 +53,14 @@ def create_vocab_service(
     config_file: str = CONFIG_FILE,
     must_exist: bool = False,
     db_path: str | None = None,
-) -> Optional[VocabService]:
+) -> VocabService | None:
     """Create and initialize VocabService with default implementations."""
     final_db_path = get_db_path(config_file) if db_path is None else db_path
 
     if not os.path.exists(final_db_path):
         if must_exist:
-            print(f"Error: Database not found at {final_db_path}")
-            print("Please run the GUI app first to initialize the database.")
+            logger.error("Database not found at %s", final_db_path)
+            logger.info("Please run the GUI app first to initialize the database.")
             return None
 
         os.makedirs(os.path.dirname(final_db_path), exist_ok=True)

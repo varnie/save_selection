@@ -1,7 +1,6 @@
 """Abstract repository interfaces - domain layer defines contracts."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from domain.entities import (
     History,
@@ -24,7 +23,7 @@ class AbstractWordRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_phrase(self, phrase: str) -> Optional[Word]:
+    def get_by_phrase(self, phrase: str) -> Word | None:
         """Get word by phrase."""
         pass
 
@@ -36,16 +35,16 @@ class AbstractWordRepository(ABC):
     @abstractmethod
     def get_all(
         self,
-        search: Optional[str] = None,
-        target_lang: Optional[str] = None,
-        limit: Optional[int] = None,
+        search: str | None = None,
+        target_lang: str | None = None,
+        limit: int | None = None,
         offset: int = 0,
     ) -> list[Word]:
         """Get all words with stats."""
         pass
 
     @abstractmethod
-    def get_for_review(self, limit: int = 20, target_lang: Optional[str] = None) -> list[Word]:
+    def get_for_review(self, limit: int = 20, target_lang: str | None = None) -> list[Word]:
         """Get next words for review, ordered by least recently seen first."""
         pass
 
@@ -60,7 +59,7 @@ class AbstractWordRepository(ABC):
         pass
 
     @abstractmethod
-    def get_translation(self, word_id: int, target_lang: str = "ru") -> Optional[Translation]:
+    def get_translation(self, word_id: int, target_lang: str = "ru") -> Translation | None:
         """Get translation for a word."""
         pass
 
@@ -91,7 +90,7 @@ class AbstractStatsRepository(ABC):
         pass
 
     @abstractmethod
-    def get_word_stats(self, word_id: int) -> Optional[WordStats]:
+    def get_word_stats(self, word_id: int) -> WordStats | None:
         """Get stats for a word."""
         pass
 
@@ -125,7 +124,7 @@ class AbstractSettingsRepository(ABC):
     """Abstract interface for settings operations."""
 
     @abstractmethod
-    def get(self, key: str, default: Optional[str] = None) -> Optional[Setting]:
+    def get(self, key: str, default: str | None = None) -> Setting | None:
         """Get a setting value."""
         pass
 
@@ -144,7 +143,7 @@ class AbstractLanguageRepository(ABC):
     """Abstract interface for language operations."""
 
     @abstractmethod
-    def get_by_code(self, code: str) -> Optional[Language]:
+    def get_by_code(self, code: str) -> Language | None:
         """Get language by code."""
         pass
 
@@ -168,6 +167,6 @@ class AbstractWOTDRepository(ABC):
         pass
 
     @abstractmethod
-    def get_today(self) -> Optional[WOTDHistory]:
+    def get_today(self) -> WOTDHistory | None:
         """Get today's WOTD if shown, or None."""
         pass

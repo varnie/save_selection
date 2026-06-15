@@ -1,11 +1,18 @@
 """Translation providers."""
 
+import logging
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
 import requests
 
 from application.service_interfaces import AbstractTranslationService
+
+logger = logging.getLogger(__name__)
+
+
+class TranslationError(Exception):
+    """Raised when translation fails."""
 
 
 class TranslationProvider(ABC):
@@ -52,8 +59,8 @@ class GoogleDirectProvider(TranslationProvider):
 
             return ""
         except Exception as e:
-            print(f"Translation error: {e}")
-            return ""
+            logger.exception("GoogleDirect translation failed: %s", e)
+            raise TranslationError(f"GoogleDirect translation failed: {e}") from e
 
     def get_name(self) -> str:
         return "Google Translate (direct)"
@@ -77,8 +84,8 @@ class GoogleDeepTranslatorProvider(TranslationProvider):
                 result = result[0] if result else ""
             return result.strip() if result else ""
         except Exception as e:
-            print(f"Translation error: {e}")
-            return ""
+            logger.exception("GoogleDeep translation failed: %s", e)
+            raise TranslationError(f"GoogleDeep translation failed: {e}") from e
 
     def get_name(self) -> str:
         return "Google Translate (deep-translator)"
@@ -102,8 +109,8 @@ class EasyGoogleProvider(TranslationProvider):
                 result = result[0] if result else ""
             return result.strip() if result else ""
         except Exception as e:
-            print(f"Translation error: {e}")
-            return ""
+            logger.exception("EasyGoogle translation failed: %s", e)
+            raise TranslationError(f"EasyGoogle translation failed: {e}") from e
 
     def get_name(self) -> str:
         return "EasyGoogle Translate"
@@ -140,8 +147,8 @@ class MyMemoryProvider(TranslationProvider):
                 result = result[0] if result else ""
             return result.strip() if result else ""
         except Exception as e:
-            print(f"Translation error: {e}")
-            return ""
+            logger.exception("MyMemory translation failed: %s", e)
+            raise TranslationError(f"MyMemory translation failed: {e}") from e
 
     def get_name(self) -> str:
         return "MyMemory (free)"
