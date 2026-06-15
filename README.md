@@ -112,12 +112,12 @@ Configure via System Settings → Keyboard → Shortcuts → Services, or use to
 
 ### Current Implementation
 
-Words are selected for review using the SM-2 algorithm:
+Words are selected for review using a simplified SM-2 algorithm:
 - **First review**: 1 day interval
 - **Subsequent reviews**: `interval × ease_factor` (default 2.5x)
-- **Ease factor**: Increases slightly with each quality rating ≥3, decreases if <3 (minimum 1.3)
+- **Ease factor**: Increases slightly with each review (minimum 1.3)
 - **Maximum interval**: 180 days (≈6 months)
-- **Sorting**: Due date ascending, then by interval (shorter first)
+- **Sorting**: Least recently reviewed first; never-reviewed words come before reviewed ones
 
 ## Troubleshooting
 
@@ -145,7 +145,7 @@ Words are selected for review using the SM-2 algorithm:
 ### General
 
 #### Words don't appear in review
-- The app shows words that are due for review (based on interval)
+- The app shows all your words, ordered by least recently seen
 - Make sure your target language matches the translations you want to review
 
 ## Architecture
