@@ -39,8 +39,8 @@ class TestWordRepositoryIntegration:
         """Test recording review stats."""
         word = word_repo.add("statstest")
 
-        stats_repo.update_word_stats(word.id, interval_days=5, ease_factor=2.5)
+        stats_repo.update_word_stats(word.id)
         record = stats_repo.get_word_stats(word.id)
 
         assert record is not None
-        assert record.interval_days == 5
+        assert record.last_reviewed is not None

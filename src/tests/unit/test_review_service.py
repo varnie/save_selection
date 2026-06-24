@@ -11,26 +11,14 @@ class TestReviewService:
         next_word = review_service.get_next_word()
         assert next_word is not None
 
-    def test_review_word_updates_interval(self, word_service, review_service):
-        """Test that review updates word interval."""
+    def test_review_word(self, word_service, review_service):
+        """Test that review records the review."""
         word = word_service.add_word("review", translation="проверка")
 
         review_service.review_word(word.id)
 
-    def test_review_word_resets_interval(self, word_service, review_service):
-        """Test that skip resets interval to 1 day."""
-        word = word_service.add_word("hard", translation="трудно")
-
-        review_service.skip_word(word.id)
-
-    def test_review_word_increases_ease(self, word_service, review_service):
-        """Test that review increases ease factor."""
-        word = word_service.add_word("easy", translation="легко")
-
-        review_service.review_word(word.id)
-
-    def test_skip_word_moves_to_end(self, word_service, review_service):
-        """Test that skip moves word to end of queue."""
+    def test_skip_word(self, word_service, review_service):
+        """Test that skip records the review."""
         word = word_service.add_word("skipme", translation="пропустить")
 
         review_service.skip_word(word.id)
@@ -42,17 +30,7 @@ class TestReviewService:
         assert isinstance(stats, dict)
         assert "total_words" in stats
         assert "today_reviews" in stats
-        assert "short_interval" in stats
-
-    def test_format_interval_days(self, review_service):
-        """Test interval formatting."""
-        assert review_service.format_interval(1) == "1 day"
-        assert review_service.format_interval(5) == "5 days"
-
-    def test_format_interval_months(self, review_service):
-        """Test interval formatting for months."""
-        result = review_service.format_interval(60)
-        assert "mo" in result
+        assert "streak" in stats
 
     def test_get_language_counts(self, word_service, review_service):
         """Test getting language counts."""

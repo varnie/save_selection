@@ -58,18 +58,6 @@ class StatsWindow(Gtk.Window):
         sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         box.pack_start(sep, False, False, 10)
 
-        # Short interval
-        row = self._make_row("Learning (≤7 days):", str(stats.get("short_interval", 0)))
-        box.pack_start(row, False, False, 0)
-
-        # Long interval
-        row = self._make_row("Mastered (>7 days):", str(stats.get("long_interval", 0)))
-        box.pack_start(row, False, False, 0)
-
-        # Separator
-        sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-        box.pack_start(sep, False, False, 10)
-
         # Export button
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         export_btn = Gtk.Button(label="Export CSV")

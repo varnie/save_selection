@@ -11,15 +11,12 @@ class TestWordEntity:
         word = Word()
         assert word.id == 0
         assert word.phrase == ""
-        assert word.interval_days == 1
-        assert word.ease_factor == 2.5
 
     def test_word_with_values(self):
         """Test Word entity with values."""
-        word = Word(id=1, phrase="test", translation="тест", interval_days=5)
+        word = Word(id=1, phrase="test", translation="тест")
         assert word.id == 1
         assert word.phrase == "test"
-        assert word.interval_days == 5
 
 
 class TestLanguageEntity:
@@ -63,10 +60,9 @@ class TestWordStatsEntity:
     def test_word_stats_defaults(self):
         """Test WordStats entity default values."""
         stats = WordStats()
-        assert stats.interval_days == 1
-        assert stats.ease_factor == 2.5
+        assert stats.word_id == 0
 
     def test_word_stats_with_values(self):
         """Test WordStats entity with values."""
-        stats = WordStats(id=1, word_id=1, interval_days=7, ease_factor=2.5)
-        assert stats.interval_days == 7
+        stats = WordStats(id=1, word_id=1)
+        assert stats.word_id == 1

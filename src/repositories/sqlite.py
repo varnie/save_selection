@@ -39,6 +39,7 @@ class SQLiteDatabase(BaseDatabase):
         """Connect to database and create schema."""
         Base.metadata.create_all(self.engine)
         self._drop_due_date_column()
+        self._drop_legacy_columns()
         self._create_index("idx_history_reviewed_at", "history", "reviewed_at")
         self._create_index("idx_history_word_id", "history", "word_id")
         self._create_index("idx_translation_word_id", "translations", "word_id")
@@ -68,6 +69,31 @@ class SQLiteDatabase(BaseDatabase):
                 if refs_due:
                     conn.execute(text(f"DROP INDEX IF EXISTS \"{idx_name}\""))
             conn.execute(text("ALTER TABLE word_stats DROP COLUMN due_date"))
+            conn.commit()
+
+    def _drop_legacy_columns(self) -> None:
+        with self.engine.connect() as conn:
+            existing = {
+                row[0]
+                for row in conn.execute(
+                    text("SELECT name FROM pragma_table_info('word_stats')")
+                ).fetchall()
+            }
+            for col in ("interval_days", "ease_factor"):
+                if col in existing:
+                    idx_rows = conn.execute(
+                        text("SELECT `name` FROM pragma_index_list('word_stats') WHERE `origin`='c'")
+                    ).fetchall()
+                    for (idx_name,) in idx_rows:
+                        refs = conn.execute(
+                            text(
+                                "SELECT COUNT(*) FROM pragma_index_info(:name) WHERE `name`=:col"
+                            ),
+                            {"name": idx_name, "col": col},
+                        ).scalar()
+                        if refs:
+                            conn.execute(text(f"DROP INDEX IF EXISTS \"{idx_name}\""))
+                    conn.execute(text(f"ALTER TABLE word_stats DROP COLUMN {col}"))
             conn.commit()
 
     def commit(self) -> None:

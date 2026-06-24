@@ -6,7 +6,7 @@ A lightweight vocabulary learning app with system tray and spaced repetition. Su
 
 - **System tray**: Runs in background with tray icon
 - **Save phrases**: Select text anywhere, press a hotkey, done
-- **Spaced repetition**: SM-2 algorithm for optimal review scheduling
+- **Spaced repetition**: Words shown by least recently seen
 - **Auto-translation**: Automatic translation via multiple providers
 - **Multiple translation providers**: Google (direct), Google (deep-translator), EasyGoogle, MyMemory
 - **Stats dashboard**: See words learned, streak, reviews today
@@ -95,7 +95,7 @@ Configure via System Settings → Keyboard → Shortcuts → Services, or use to
 
 ### Settings
 
-- **Review interval**: How often to show words (30min - 8hours)
+- **Review interval**: How often the background loop checks for words (30min - 8hours)
 - **Translation provider**: Choose between Google Translate (direct), Google Translate (deep-translator), EasyGoogle Translate, or MyMemory (free)
 - **Target language**: Translation language (Russian, Spanish, French, German, Italian, Portuguese, Japanese, Chinese, Korean)
 - **Word of the Day**: Enable/disable daily word notifications with CEFR level selection (A1-C2)
@@ -110,14 +110,7 @@ Configure via System Settings → Keyboard → Shortcuts → Services, or use to
 
 ## Spaced Repetition
 
-### Current Implementation
-
-Words are selected for review using a simplified SM-2 algorithm:
-- **First review**: 1 day interval
-- **Subsequent reviews**: `interval × ease_factor` (default 2.5x)
-- **Ease factor**: Increases slightly with each review (minimum 1.3)
-- **Maximum interval**: 180 days (≈6 months)
-- **Sorting**: Least recently reviewed first; never-reviewed words come before reviewed ones
+Words are shown in order of least recently seen — never-reviewed words first, then oldest `last_reviewed` timestamp. Reviewing a word simply records the timestamp and increments the review count.
 
 ## Troubleshooting
 
@@ -155,7 +148,7 @@ src/
 ├── application/           # Service layer (business logic)
 │   ├── factory.py         # ServiceFactory - creates services with DI
 │   ├── export_service.py  # CSV export
-│   ├── review_service.py  # SM-2 spaced repetition
+│   ├── review_service.py  # Review scheduling
 │   ├── word_service.py    # Word CRUD operations
 │   ├── wotd_service.py    # Word of the Day
 │   ├── settings_service.py

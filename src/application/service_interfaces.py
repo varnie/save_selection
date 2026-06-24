@@ -104,7 +104,7 @@ class AbstractReviewService(ABC):
 
     @abstractmethod
     def skip_word(self, word_id: int) -> None:
-        """Skip word - move to end of queue by marking as reviewed."""
+        """Skip word - mark as reviewed."""
         pass
 
     @abstractmethod
@@ -115,11 +115,6 @@ class AbstractReviewService(ABC):
     @abstractmethod
     def get_language_counts(self) -> dict:
         """Get word count per language."""
-        pass
-
-    @abstractmethod
-    def format_interval(self, interval: int) -> str:
-        """Format interval days to human-readable string."""
         pass
 
 

@@ -100,7 +100,7 @@ class WordBrowserWindow(Gtk.Window):
         main_box.pack_start(scrolled, True, True, 0)
 
         # Create model for TreeView
-        self.model = Gtk.ListStore(int, str, str, str, str)
+        self.model = Gtk.ListStore(int, str, str, str)
         self.treeview = Gtk.TreeView(model=self.model)
 
         # Columns
@@ -108,7 +108,6 @@ class WordBrowserWindow(Gtk.Window):
             ("#", 50),
             ("Word", 300),
             ("Translation", 300),
-            ("Interval", 100),
             ("Last reviewed", 120),
         ]
 
@@ -172,17 +171,7 @@ class WordBrowserWindow(Gtk.Window):
         for i, word in enumerate(self.words):
             phrase = word.phrase
             target = word.translation
-            interval = word.interval_days
             last_reviewed_ts = word.last_reviewed
-
-            if interval == 1:
-                interval_str = "1 day"
-            elif interval < 30:
-                interval_str = f"{interval} days"
-            elif interval < 365:
-                interval_str = f"{interval // 30} mo"
-            else:
-                interval_str = f"{interval // 365} yr"
 
             if last_reviewed_ts:
                 lr = datetime.fromtimestamp(last_reviewed_ts, tz=timezone.utc)
@@ -190,7 +179,7 @@ class WordBrowserWindow(Gtk.Window):
             else:
                 last_reviewed_str = "Never"
 
-            self.model.append([i + 1, phrase, target, interval_str, last_reviewed_str])
+            self.model.append([i + 1, phrase, target, last_reviewed_str])
 
         total = len(self.words)
         start = self.current_page * self.page_size + 1 if total > 0 else 0

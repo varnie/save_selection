@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Float, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
 
 
@@ -66,8 +66,6 @@ class WordStats(Base):
     word_id = Column(
         Integer, ForeignKey("words.id", ondelete="CASCADE"), nullable=False, unique=True
     )
-    interval_days = Column(Integer, nullable=False, default=1)
-    ease_factor = Column(Float, nullable=False, default=2.5)
     last_reviewed = Column(Integer, nullable=True)
 
     word = relationship("Word", back_populates="stats")

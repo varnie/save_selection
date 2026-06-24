@@ -22,21 +22,17 @@ class StatsRepository(AbstractStatsRepository):
         self.db = db
 
     def update_word_stats(
-        self, word_id: int, interval_days: int, ease_factor: float
+        self, word_id: int
     ) -> None:
-        """Update word stats."""
+        """Update word stats (set last_reviewed to now)."""
         now = int(datetime.now(timezone.utc).timestamp())
         stats = self.db.session.query(ORMWordStats).filter_by(word_id=word_id).first()
 
         if stats:
-            stats.interval_days = interval_days
-            stats.ease_factor = ease_factor
             stats.last_reviewed = now
         else:
             stats = ORMWordStats(
                 word_id=word_id,
-                interval_days=interval_days,
-                ease_factor=ease_factor,
                 last_reviewed=now,
             )
             self.db.session.add(stats)
@@ -108,24 +104,6 @@ class StatsRepository(AbstractStatsRepository):
         total_reviews = review_counts.total_reviews or 0
         today_reviews = review_counts.today_reviews or 0
 
-        # Combined: short_interval + long_interval in one query
-        interval_stats = (
-            db.query(
-                func.count(func.distinct(ORMWord.id))
-                .filter((ORMWordStats.interval_days <= 7) | (ORMWordStats.interval_days.is_(None)))
-                .label("short_interval"),
-                func.count(func.distinct(ORMWord.id))
-                .filter(ORMWordStats.interval_days > 7)
-                .label("long_interval"),
-            )
-            .select_from(ORMWord)
-            .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
-            .outerjoin(ORMWordStats, ORMWord.id == ORMWordStats.word_id)
-            .first()
-        )
-        short_interval = interval_stats.short_interval or 0
-        long_interval = interval_stats.long_interval or 0
-
         # Streak — single query for distinct review dates
         rows = (
             db.query(func.date(ORMHistory.reviewed_at, "unixepoch").label("day"))
@@ -148,8 +126,6 @@ class StatsRepository(AbstractStatsRepository):
                 "today_words": today_words,
                 "today_reviews": today_reviews,
                 "total_reviews": total_reviews,
-                "short_interval": short_interval,
-                "long_interval": long_interval,
                 "streak": streak,
             }
         )

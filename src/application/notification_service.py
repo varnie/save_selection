@@ -23,14 +23,12 @@ class NotificationService:
             return None
 
         phrase = word.phrase
-        interval = word.interval_days
 
         translation, trans_lang = self._word.get_translation_with_lang(word.id)
 
-        interval_str = self._review.format_interval(interval)
         abbrev = self._word.get_language_abbreviation(trans_lang) if trans_lang else "—"
 
-        body = f"<b>{phrase}</b> [{interval_str}]"
+        body = f"<b>{phrase}</b>"
         if translation:
             body += f"\n→ {translation} [{abbrev}]"
 

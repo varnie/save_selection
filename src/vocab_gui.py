@@ -204,19 +204,9 @@ class VocabApp(Gtk.Application):
 
         translation, trans_lang = self.vocab_service.get_translation_with_lang(word.id)
 
-        interval = word.interval_days
-        if interval == 1:
-            interval_str = "1 day"
-        elif interval < 30:
-            interval_str = f"{interval} days"
-        elif interval < 365:
-            interval_str = f"{interval // 30} mo"
-        else:
-            interval_str = f"{interval // 365} yr"
-
         abbrev = self.vocab_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
 
-        body = f"<b>{word.phrase}</b> [{interval_str}]"
+        body = f"<b>{word.phrase}</b>"
         if translation:
             body += f"\n→ {translation} [{abbrev}]"
 

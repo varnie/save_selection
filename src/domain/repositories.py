@@ -84,9 +84,9 @@ class AbstractStatsRepository(ABC):
 
     @abstractmethod
     def update_word_stats(
-        self, word_id: int, interval_days: int, ease_factor: float
+        self, word_id: int
     ) -> None:
-        """Update word stats."""
+        """Update word stats (set last_reviewed to now)."""
         pass
 
     @abstractmethod
