@@ -1,6 +1,7 @@
 """Word management service - handles word CRUD operations."""
 
 import logging
+from datetime import datetime, timezone
 
 from application.service_interfaces import (
     AbstractTranslationService,
@@ -98,6 +99,13 @@ class WordManagementService(AbstractWordManagementService):
     ) -> list[Word]:
         """Get all words with optional search and language filter."""
         return self.word_repo.get_all(search, target_lang, limit, offset)
+
+    def get_words_added_today(self) -> list[Word]:
+        """Get words added today."""
+        target_lang = self._get_target_lang()
+        now = datetime.now(timezone.utc)
+        today_start = int(datetime(now.year, now.month, now.day).timestamp())
+        return self.word_repo.get_all(target_lang=target_lang, since=today_start)
 
     def get_word(self, phrase: str) -> Word | None:
         """Get word by phrase."""

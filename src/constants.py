@@ -43,6 +43,7 @@ MENU_ITEMS = [
     ("Pause (1 hour)", "pause"),
     None,
     ("Add word", "add_word"),
+    ("Words added today", "words_today"),
     ("Word Browser", "word_browser"),
     ("Stats", "stats"),
     ("Settings", "settings"),

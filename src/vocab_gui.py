@@ -20,6 +20,7 @@ from windows.add_word import AddWordDialog
 from windows.settings import SettingsWindow
 from windows.stats import StatsWindow
 from windows.word_browser import WordBrowserWindow
+from windows.words_today import WordsTodayWindow
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,7 @@ class VocabApp(Gtk.Application):
             "show_next": self.on_show_next,
             "pause": self.on_pause,
             "add_word": self.on_add_word,
+            "words_today": self.on_words_today,
             "word_browser": self.on_word_browser,
             "stats": self.on_show_stats,
             "settings": self.on_settings,
@@ -293,6 +295,16 @@ class VocabApp(Gtk.Application):
             return win
 
         self._open_window("settings", create_window)
+
+    def on_words_today(self, widget=None) -> None:
+        """Show words added today window."""
+
+        def create_window():
+            win = WordsTodayWindow(self.vocab_service)
+            win.connect("destroy", lambda w: self._on_window_closed("words_today", w))
+            return win
+
+        self._open_window("words_today", create_window)
 
     def on_word_browser(self, widget=None) -> None:
         """Show word browser window."""

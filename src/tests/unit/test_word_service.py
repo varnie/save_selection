@@ -1,7 +1,9 @@
 """Unit tests for WordManagementService."""
 
+from datetime import datetime, timezone
 
 import pytest
+from sqlalchemy import text
 
 
 class TestWordManagementService:
@@ -84,6 +86,30 @@ class TestWordManagementService:
         word = word_service.add_word("test", translation="тест")
         translation = word_service.get_translation(word.id)
         assert translation == "тест"
+
+    def test_get_words_added_today(self, word_service, test_db):
+        """Test getting words added today."""
+        word_service.add_word("today_word", translation="сегодня")
+        word_service.add_word("yesterday_word", translation="вчера")
+
+        now = datetime.now(timezone.utc)
+        today_start = int(datetime(now.year, now.month, now.day).timestamp())
+        yesterday_start = today_start - 86400
+
+        test_db.session.execute(
+            text("UPDATE words SET created_at = :ts WHERE phrase = 'today_word'"),
+            {"ts": today_start},
+        )
+        test_db.session.execute(
+            text("UPDATE words SET created_at = :ts WHERE phrase = 'yesterday_word'"),
+            {"ts": yesterday_start},
+        )
+        test_db.commit()
+
+        words = word_service.get_words_added_today()
+        phrases = [w.phrase for w in words]
+        assert "today_word" in phrases
+        assert "yesterday_word" not in phrases
 
     def test_get_language_abbreviation(self, word_service):
         """Test getting language abbreviation."""

@@ -39,6 +39,7 @@ class AbstractWordRepository(ABC):
         target_lang: str | None = None,
         limit: int | None = None,
         offset: int = 0,
+        since: int | None = None,
     ) -> list[Word]:
         """Get all words with stats."""
         pass

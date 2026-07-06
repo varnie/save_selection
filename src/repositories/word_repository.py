@@ -55,6 +55,7 @@ class WordRepository(AbstractWordRepository):
         target_lang: str | None = None,
         limit: int | None = None,
         offset: int = 0,
+        since: int | None = None,
     ) -> list[Word]:
         """Get all words with stats."""
         lang = None
@@ -86,6 +87,9 @@ class WordRepository(AbstractWordRepository):
                 )
             else:
                 query = query.filter(ORMWord.phrase.ilike(search_term))
+
+        if since is not None:
+            query = query.filter(ORMWord.created_at >= since)
 
         query = query.distinct().order_by(ORMWord.phrase)
         if limit is not None:

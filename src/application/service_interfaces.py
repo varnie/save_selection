@@ -45,6 +45,11 @@ class AbstractWordManagementService(ABC):
         pass
 
     @abstractmethod
+    def get_words_added_today(self) -> list[Word]:
+        """Get words added today."""
+        pass
+
+    @abstractmethod
     def get_translation(self, word_id: int) -> str | None:
         """Get translation for a word."""
         pass
