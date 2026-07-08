@@ -11,6 +11,7 @@ A lightweight vocabulary learning app with system tray and spaced repetition. Su
 - **Multiple translation providers**: Google (direct), Google (deep-translator), EasyGoogle, MyMemory
 - **Stats dashboard**: See words learned, streak, reviews today
 - **Word Browser**: View, search, edit and delete all words
+- **Words Added Today**: Quick view of today's vocabulary
 - **Word of the Day**: Daily vocabulary boost with CEFR-level words (A1-C2)
 - **Autostart**: Automatically starts on login
 - **Multiple languages**: Support for 9 target languages
@@ -148,29 +149,39 @@ src/
 ├── application/           # Service layer (business logic)
 │   ├── factory.py         # ServiceFactory - creates services with DI
 │   ├── export_service.py  # CSV export
+│   ├── notification_service.py
+│   ├── review_scheduler.py  # Background review loop + pause/WOTD
 │   ├── review_service.py  # Review scheduling
-│   ├── word_service.py    # Word CRUD operations
-│   ├── wotd_service.py    # Word of the Day
 │   ├── settings_service.py
-│   └── service_interfaces.py  # Abstract interfaces
+│   ├── service_interfaces.py  # Abstract interfaces
+│   ├── translation_test_service.py
+│   ├── vocab_service.py   # Facade over all services
+│   ├── word_service.py    # Word CRUD operations
+│   └── wotd_service.py    # Word of the Day
 │
 ├── domain/                # Domain layer (pure business rules)
 │   ├── entities.py       # Word, Language, Stats, etc.
+│   ├── exceptions.py     # TranslationError
 │   └── repositories.py  # Abstract repository interfaces
 │
 ├── infrastructure/        # Infrastructure layer (external systems)
-│   ├── database_manager.py  # DB lifecycle
 │   ├── translation.py    # Translation API implementations
 │   ├── models.py         # SQLAlchemy ORM models
 │   ├── mappers.py        # ORM ↔ Entity mappers
 │   └── ...
 │
 ├── repositories/          # Data access implementations
-│   ├── word_repository.py
+│   ├── base.py           # AbstractDatabase interface
+│   ├── language_repository.py
 │   ├── settings_repository.py
-│   └── sqlite.py         # SQLite implementation
+│   ├── sqlite.py         # SQLite implementation
+│   ├── stats_repository.py
+│   ├── word_repository.py
+│   └── wotd_repository.py
 │
-└── vocab_gui.py          # GTK3 GUI entry point
+├── vocab_gui.py          # GTK3 GUI entry point
+├── vocab_cli.py          # CLI entry point (hotkeys)
+└── wotd.py               # LocalWordSource (CSV-backed)
 ```
 
 ### Design Patterns Used
@@ -203,15 +214,22 @@ pytest
 ```
 src/tests/
 ├── conftest.py           # Fixtures
-├── unit/               # Unit tests
-│   ├── test_word_service.py
-│   ├── test_review_service.py
-│   ├── test_settings_service.py
-│   └── test_export_service.py
-├── domain/             # Domain entity tests
+├── domain/               # Domain entity tests
 │   └── test_entities.py
-└── integration/      # Integration tests
-    └── test_repository.py
+├── integration/          # Integration tests
+│   └── test_repository.py
+└── unit/                 # Unit tests
+    ├── test_application_init.py
+    ├── test_config.py
+    ├── test_export_service.py
+    ├── test_review_service.py
+    ├── test_settings_service.py
+    ├── test_sqlite.py
+    ├── test_version.py
+    ├── test_vocab_cli.py
+    ├── test_vocab_service.py
+    ├── test_word_service.py
+    └── test_wotd.py
 ```
 
 ### CI
