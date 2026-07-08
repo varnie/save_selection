@@ -1,7 +1,7 @@
 """Database abstraction - DB-agnostic interface."""
 
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar
+from typing import Any
 
 
 class AbstractDatabase(ABC):
@@ -42,23 +42,3 @@ class AbstractDatabase(ABC):
     def remove_session(self) -> None:
         """Remove scoped session (for threading)."""
         pass
-
-
-class DatabaseFactory:
-    """Factory for creating database instances."""
-
-    _implementations: ClassVar[dict[str, type[AbstractDatabase]]] = {}
-
-    @classmethod
-    def register(cls, name: str, db_class: type[AbstractDatabase]) -> None:
-        """Register a database implementation."""
-        cls._implementations[name] = db_class
-
-    @classmethod
-    def create(cls, name: str, **kwargs) -> AbstractDatabase:
-        """Create a database instance by name."""
-        if name not in cls._implementations:
-            raise ValueError(
-                f"Unknown database: {name}. Available: {list(cls._implementations.keys())}"
-            )
-        return cls._implementations[name](**kwargs)

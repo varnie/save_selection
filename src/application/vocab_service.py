@@ -2,7 +2,7 @@
 
 from application.factory import ServiceFactory
 from domain.entities import Language
-from infrastructure.database_manager import DatabaseManager
+from repositories.base import AbstractDatabase
 
 
 class VocabService:
@@ -14,17 +14,17 @@ class VocabService:
 
     def __init__(
         self,
-        db_manager: DatabaseManager,
+        db: AbstractDatabase,
         factory: ServiceFactory,
     ) -> None:
-        self._db_manager = db_manager
+        self._db = db
 
         self.language_repo = factory.language_repo
         self.language_repo.init_defaults()
 
         self.word_service = factory.create_word_service()
         self.review_service = factory.create_review_service()
-        self.settings_service = factory.create_settings_service()
+        self.settings_service = factory.settings_service
         self.export_service = factory.create_export_service()
         self.wotd_service = factory.create_wotd_service(self.word_service)
         self.notification_service = factory.create_notification_service(
@@ -49,10 +49,10 @@ class VocabService:
         raise AttributeError(f"'{type(self).__name__}' has no attribute '{name}'")
 
     def close(self) -> None:
-        self._db_manager.close()
+        self._db.close()
 
     def remove_session(self) -> None:
-        self._db_manager.remove_session()
+        self._db.remove_session()
 
     def get_languages(self) -> list[Language]:
         return self.language_repo.get_all()

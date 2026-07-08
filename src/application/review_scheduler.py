@@ -1,0 +1,177 @@
+"""ReviewScheduler - manages the background review loop, pause state, WOTD, and word popup."""
+
+import logging
+import os
+import threading
+import time
+
+from application.service_interfaces import (
+    AbstractReviewService,
+    AbstractSettingsService,
+    AbstractWordManagementService,
+    AbstractWOTDService,
+)
+from constants import TEMP_PHRASE_FILE
+
+logger = logging.getLogger(__name__)
+
+
+class ReviewScheduler:
+    """Manages the background review loop, pause state, WOTD check, and word popup logic."""
+
+    def __init__(
+        self,
+        review_service: AbstractReviewService,
+        wotd_service: AbstractWOTDService,
+        settings_service: AbstractSettingsService,
+        word_service: AbstractWordManagementService,
+        notify_callback: object,
+        label_callback: object,
+        cleanup_callback: object | None = None,
+    ) -> None:
+        self.review_service = review_service
+        self.wotd_service = wotd_service
+        self.settings_service = settings_service
+        self.word_service = word_service
+        self._notify = notify_callback
+        self._update_label = label_callback
+        self._cleanup_session = cleanup_callback or (lambda: None)
+
+        self.current_word = None
+        self.paused_until = 0.0
+        self.running = False
+        self._state_lock = threading.Lock()
+        self._settings_changed = threading.Event()
+        self._review_thread: threading.Thread | None = None
+
+    def start(self) -> None:
+        """Start the review thread and schedule WOTD check."""
+        self.running = True
+        self._review_thread = threading.Thread(target=self._review_loop, daemon=True)
+        self._review_thread.start()
+        threading.Timer(2.0, self._check_wotd).start()
+
+    def stop(self) -> None:
+        """Signal the review loop to stop."""
+        with self._state_lock:
+            self.running = False
+        self._settings_changed.set()
+
+    def on_pause(self) -> str:
+        """Toggle pause/resume reviews. Returns the new pause label text."""
+        now = time.time()
+        with self._state_lock:
+            if self.paused_until > now:
+                self.paused_until = 0.0
+                label = "Pause (1 hour)"
+            else:
+                self.paused_until = now + 3600
+                label = "Resume"
+        self._settings_changed.set()
+        return label
+
+    def on_show_next(self):
+        """Show next word immediately. Returns the Word or None."""
+        word = self.review_service.get_next_word()
+        if word:
+            with self._state_lock:
+                self.current_word = word
+            self._show_word_popup(word)
+        return word
+
+    def get_current_phrase(self) -> str | None:
+        """Get current word from temp file or in-memory current_word."""
+        if os.path.exists(TEMP_PHRASE_FILE):
+            with open(TEMP_PHRASE_FILE) as f:
+                return f.read().strip()
+        with self._state_lock:
+            return self.current_word.phrase if self.current_word else None
+
+    @staticmethod
+    def _set_current_phrase(phrase: str) -> None:
+        """Write the current phrase to the temp file."""
+        with open(TEMP_PHRASE_FILE, "w") as f:
+            f.write(phrase)
+
+    def _show_word_popup(self, word) -> None:
+        """Show word notification."""
+        if not word:
+            return
+
+        translation, trans_lang = self.word_service.get_translation_with_lang(word.id)
+        abbrev = self.word_service.get_language_abbreviation(trans_lang) if trans_lang else "\u2014"
+
+        body = f"<b>{word.phrase}</b>"
+        if translation:
+            body += f"\n\u2192 {translation} [{abbrev}]"
+
+        self._set_current_phrase(word.phrase)
+        self.review_service.review_word(word.id)
+        self._notify(body)
+
+    def _check_wotd(self) -> None:
+        """Check and show Word of the Day if enabled."""
+        try:
+            word = self.wotd_service.get_word_of_the_day()
+            if word:
+                self._set_current_phrase(word.phrase)
+                body = f"<b>{word.phrase}</b>\n\u2192 {word.translation}"
+                self._notify(body, "Word of the Day")
+        except Exception as e:
+            logger.exception("WOTD error: %s", e)
+        finally:
+            self._cleanup_session()
+
+    def _review_loop(self) -> None:
+        """Background review loop."""
+        consecutive_errors = 0
+        max_errors = 3
+        while True:
+            with self._state_lock:
+                if not self.running:
+                    break
+                current_paused = self.paused_until
+
+            try:
+                interval = int(
+                    self.settings_service.get_setting("review_interval", "3600")
+                )
+
+                now = time.time()
+                if now < current_paused:
+                    wait_time = int(current_paused - now)
+                    self._settings_changed.wait(min(wait_time, 60))
+                    continue
+
+                word = self.review_service.get_next_word()
+                if word:
+                    with self._state_lock:
+                        self.current_word = word
+                    self._show_word_popup(word)
+                    self._update_label(str(word.phrase)[:20])
+                    for _ in range(interval // 60):
+                        with self._state_lock:
+                            if not self.running:
+                                break
+                        self._settings_changed.wait(60)
+                        self._settings_changed.clear()
+                else:
+                    self._settings_changed.wait(300)
+                    self._settings_changed.clear()
+
+                consecutive_errors = 0
+
+            except Exception as e:
+                consecutive_errors += 1
+                logger.exception(
+                    "Review loop error (%d/%d): %s",
+                    consecutive_errors,
+                    max_errors,
+                    e,
+                )
+                if consecutive_errors >= max_errors:
+                    logger.critical("Too many review loop errors, stopping")
+                    break
+                self._settings_changed.wait(60)
+
+        self._cleanup_session()

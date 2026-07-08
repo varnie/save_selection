@@ -48,7 +48,6 @@ class TestCreateVocabService:
 
     @patch("application.SQLiteDatabase")
     @patch("application.get_db_path")
-    @patch("application.DatabaseManager")
     @patch("application.ServiceFactory")
     @patch("application.VocabService")
     @patch("application.TranslationServiceImpl")
@@ -67,7 +66,6 @@ class TestCreateVocabService:
         mock_trans_service,
         mock_vocab_service,
         mock_factory,
-        mock_db_manager,
         mock_get_db_path,
         mock_sqlite,
     ):

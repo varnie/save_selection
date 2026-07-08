@@ -7,12 +7,9 @@ from typing import ClassVar
 import requests
 
 from application.service_interfaces import AbstractTranslationService
+from domain.exceptions import TranslationError
 
 logger = logging.getLogger(__name__)
-
-
-class TranslationError(Exception):
-    """Raised when translation fails."""
 
 
 class TranslationProvider(ABC):

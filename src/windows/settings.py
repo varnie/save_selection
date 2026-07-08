@@ -8,11 +8,11 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 
+from application.service_interfaces import CEFR_LEVELS
 from config import DEFAULT_SETTINGS, read_config, write_config
 from constants import AUTOSTART_DIR, AUTOSTART_FILE, DEFAULT_DATA_DIR, IS_MACOS
 from infrastructure.translation import ProviderRegistry
 from version import get_version
-from wotd import CEFR_LEVELS
 
 
 def _get_autostart_enabled() -> bool:

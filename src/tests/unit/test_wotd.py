@@ -2,7 +2,8 @@
 
 from unittest.mock import mock_open, patch
 
-from wotd import CEFR_LEVELS, LocalWordSource, OnlineWordSource, WordSourceType, get_word_source
+from application.service_interfaces import CEFR_LEVELS
+from wotd import LocalWordSource
 
 
 def _csv_content(rows: list[list[str]]) -> str:
@@ -122,52 +123,3 @@ class TestLocalWordSource:
         ):
             source = LocalWordSource()
             assert source.words == {"A1": ["good"]}
-
-
-class TestOnlineWordSource:
-    """Tests for OnlineWordSource."""
-
-    def test_get_word_returns_none(self):
-        """Test that OnlineWordSource.get_word returns None (not implemented)."""
-        source = OnlineWordSource()
-        result = source.get_word("A1")
-        assert result is None
-
-    def test_get_available_levels_returns_cefr_levels(self):
-        """Test that get_available_levels returns all CEFR levels."""
-        source = OnlineWordSource()
-        levels = source.get_available_levels()
-        assert levels == CEFR_LEVELS
-
-    def test_configure_sets_api_url(self):
-        """Test that configure sets api_url."""
-        source = OnlineWordSource()
-        source.configure("https://api.example.com", "key123")
-        assert source.api_url == "https://api.example.com"
-        assert source.api_key == "key123"
-
-    def test_configure_without_api_key(self):
-        """Test that configure works without api_key."""
-        source = OnlineWordSource()
-        source.configure("https://api.example.com")
-        assert source.api_url == "https://api.example.com"
-        assert source.api_key is None
-
-
-class TestGetWordSource:
-    """Tests for get_word_source factory function."""
-
-    def test_get_local_source_by_default(self):
-        """Test that get_word_source returns LocalWordSource by default."""
-        source = get_word_source()
-        assert isinstance(source, LocalWordSource)
-
-    def test_get_local_source_explicit(self):
-        """Test that get_word_source returns LocalWordSource for LOCAL type."""
-        source = get_word_source(WordSourceType.LOCAL)
-        assert isinstance(source, LocalWordSource)
-
-    def test_get_online_source(self):
-        """Test that get_word_source returns OnlineWordSource for ONLINE type."""
-        source = get_word_source(WordSourceType.ONLINE)
-        assert isinstance(source, OnlineWordSource)

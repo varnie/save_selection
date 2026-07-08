@@ -1,7 +1,5 @@
 """SQLite implementation of database abstraction."""
 
-from typing import Any
-
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
@@ -116,16 +114,3 @@ class SQLiteDatabase(BaseDatabase):
     def remove_session(self) -> None:
         """Remove scoped session (for threading)."""
         self.ScopedSession.remove()
-
-    @property
-    def in_transaction(self) -> bool:
-        """Check if in a transaction."""
-        return self.session.in_transaction()
-
-    def execute(self, query: Any) -> Any:
-        """Execute a raw query."""
-        return self.session.execute(query)
-
-    def flush(self) -> None:
-        """Flush pending changes."""
-        self.session.flush()

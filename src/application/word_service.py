@@ -4,16 +4,13 @@ import logging
 from datetime import datetime, timezone
 
 from application.service_interfaces import (
+    AbstractSettingsService,
     AbstractTranslationService,
     AbstractWordManagementService,
 )
 from domain.entities import Word
-from domain.repositories import (
-    AbstractLanguageRepository,
-    AbstractSettingsRepository,
-    AbstractWordRepository,
-)
-from infrastructure.translation import TranslationError
+from domain.exceptions import TranslationError
+from domain.repositories import AbstractLanguageRepository, AbstractWordRepository
 
 logger = logging.getLogger(__name__)
 
@@ -28,23 +25,19 @@ class WordManagementService(AbstractWordManagementService):
         self,
         word_repo: AbstractWordRepository,
         language_repo: AbstractLanguageRepository,
-        settings_repo: AbstractSettingsRepository,
+        settings_service: AbstractSettingsService,
         translation_service: AbstractTranslationService,
     ) -> None:
         self.word_repo = word_repo
         self.language_repo = language_repo
-        self.settings_repo = settings_repo
+        self.settings_service = settings_service
         self.translation_service = translation_service
 
     def _get_target_lang(self) -> str:
-        return self._get_setting("target_lang", "ru")
+        return self.settings_service.get_setting("target_lang", "ru")
 
     def _get_source_lang(self) -> str:
-        return self._get_setting("source_lang", "en")
-
-    def _get_setting(self, key: str, default: str) -> str:
-        setting = self.settings_repo.get(key)
-        return setting.value if setting else default
+        return self.settings_service.get_setting("source_lang", "en")
 
     def add_word(
         self, phrase: str, translation: str | None = None, auto_translate: bool = False
@@ -72,7 +65,7 @@ class WordManagementService(AbstractWordManagementService):
             if translation:
                 self.word_repo.add_translation(word_id, translation, target_lang)
             elif auto_translate:
-                provider_name = self._get_setting("translation_provider", "google_direct")
+                provider_name = self.settings_service.get_setting("translation_provider", "google_direct")
                 source_lang = self._get_source_lang()
                 try:
                     trans = self.translation_service.translate(

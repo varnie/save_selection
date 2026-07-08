@@ -20,6 +20,7 @@ from domain.repositories import (
     AbstractWOTDRepository,
 )
 from repositories.base import AbstractDatabase
+from wotd import LocalWordSource
 
 
 @dataclass
@@ -34,12 +35,16 @@ class ServiceFactory:
     wotd_repo: AbstractWOTDRepository
     translation_service: AbstractTranslationService
 
+    @property
+    def settings_service(self) -> SettingsService:
+        return SettingsService(self.settings_repo)
+
     def create_word_service(self) -> WordManagementService:
         """Create word management service."""
         return WordManagementService(
             word_repo=self.word_repo,
             language_repo=self.language_repo,
-            settings_repo=self.settings_repo,
+            settings_service=self.settings_service,
             translation_service=self.translation_service,
         )
 
@@ -48,20 +53,17 @@ class ServiceFactory:
         return ReviewService(
             word_repo=self.word_repo,
             stats_repo=self.stats_repo,
-            settings_repo=self.settings_repo,
+            settings_service=self.settings_service,
         )
-
-    def create_settings_service(self) -> SettingsService:
-        """Create settings service."""
-        return SettingsService(self.settings_repo)
 
     def create_wotd_service(self, word_service: WordManagementService) -> WOTDService:
         """Create WOTD service."""
         return WOTDService(
-            settings_repo=self.settings_repo,
+            settings_service=self.settings_service,
             wotd_repo=self.wotd_repo,
             word_service=word_service,
             translation_service=self.translation_service,
+            word_source=LocalWordSource(),
         )
 
     def create_export_service(self) -> ExportService:

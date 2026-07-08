@@ -1,13 +1,9 @@
 """Review service - handles spaced repetition review logic."""
 
 
-from application.service_interfaces import AbstractReviewService
+from application.service_interfaces import AbstractReviewService, AbstractSettingsService
 from domain.entities import Word
-from domain.repositories import (
-    AbstractSettingsRepository,
-    AbstractStatsRepository,
-    AbstractWordRepository,
-)
+from domain.repositories import AbstractStatsRepository, AbstractWordRepository
 
 
 class ReviewService(AbstractReviewService):
@@ -17,19 +13,15 @@ class ReviewService(AbstractReviewService):
         self,
         word_repo: AbstractWordRepository,
         stats_repo: AbstractStatsRepository,
-        settings_repo: AbstractSettingsRepository,
+        settings_service: AbstractSettingsService,
     ) -> None:
         self.word_repo = word_repo
         self.stats_repo = stats_repo
-        self.settings_repo = settings_repo
-
-    def _get_setting(self, key: str, default: str) -> str:
-        setting = self.settings_repo.get(key)
-        return setting.value if setting else default
+        self.settings_service = settings_service
 
     def get_next_word(self) -> Word | None:
         """Get next word for review - least recently seen first, then by review count."""
-        target_lang = self._get_setting("target_lang", "ru")
+        target_lang = self.settings_service.get_setting("target_lang", "ru")
         words = self.word_repo.get_for_review(limit=50, target_lang=target_lang)
 
         if not words:

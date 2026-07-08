@@ -2,10 +2,7 @@
 """Main vocab GUI application with system tray."""
 
 import logging
-import os
 import sys
-import threading
-import time
 
 import gi
 
@@ -13,8 +10,9 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gio, Gtk
 
 from application import create_vocab_service
+from application.review_scheduler import ReviewScheduler
 from config import DEFAULT_SETTINGS
-from constants import CONFIG_FILE, IS_LINUX, IS_MACOS, TEMP_PHRASE_FILE
+from constants import CONFIG_FILE, IS_LINUX, IS_MACOS
 from infrastructure.notifications import send_notification
 from windows.add_word import AddWordDialog
 from windows.settings import SettingsWindow
@@ -47,11 +45,7 @@ class VocabApp(Gtk.Application):
 
         self.config_file = CONFIG_FILE
         self.vocab_service = None
-        self.current_word = None
-        self.paused_until = 0.0
-        self.running = True
-        self._state_lock = threading.Lock()
-        self.settings_changed = threading.Event()
+        self.scheduler = None
         self.tray = None
 
         self._windows = {}
@@ -86,8 +80,16 @@ class VocabApp(Gtk.Application):
         self.tray = _create_tray()
         self.tray.setup(self._menu_callbacks())
 
-        self.review_thread = threading.Thread(target=self.review_loop, daemon=True)
-        self.review_thread.start()
+        self.scheduler = ReviewScheduler(
+            review_service=self.vocab_service,
+            wotd_service=self.vocab_service,
+            settings_service=self.vocab_service,
+            word_service=self.vocab_service,
+            notify_callback=self.notify,
+            label_callback=self.tray.set_label,
+            cleanup_callback=self.vocab_service.remove_session,
+        )
+        self.scheduler.start()
 
         if IS_LINUX:
             from infrastructure.tray import get_desktop_environment
@@ -103,17 +105,11 @@ class VocabApp(Gtk.Application):
                 )
                 self.vocab_service.set_setting("gnome_tray_warning_shown", "true")
 
-        threading.Timer(2.0, self.check_wotd).start()
-
     def do_activate(self):
         Gtk.Application.do_activate(self)
 
     def _on_activate(self, app):
         pass
-
-    def hold(self):
-        """Keep the application running."""
-        Gio.Application.hold(self)
 
     def _menu_callbacks(self):
         return {
@@ -152,105 +148,15 @@ class VocabApp(Gtk.Application):
             if self.vocab_service.get_setting(key) is None:
                 self.vocab_service.set_setting(key, value)
 
-    def review_loop(self) -> None:
-        """Background review loop."""
-        consecutive_errors = 0
-        max_errors = 3
-        while True:
-            with self._state_lock:
-                if not self.running:
-                    break
-                current_paused = self.paused_until
-
-            try:
-                settings = self.vocab_service.get_settings()
-                interval = int(settings.get("review_interval", 3600))
-
-                now = time.time()
-                if now < current_paused:
-                    wait_time = int(current_paused - now)
-                    self.settings_changed.wait(min(wait_time, 60))
-                    continue
-
-                word = self.vocab_service.get_next_word()
-                if word:
-                    with self._state_lock:
-                        self.current_word = word
-                    self.show_word_popup(word)
-                    for _ in range(interval // 60):
-                        with self._state_lock:
-                            if not self.running:
-                                break
-                        self.settings_changed.wait(60)
-                        self.settings_changed.clear()
-                else:
-                    self.settings_changed.wait(300)
-                    self.settings_changed.clear()
-
-                consecutive_errors = 0
-
-            except Exception as e:
-                consecutive_errors += 1
-                logger.exception("Review loop error (%d/%d): %s", consecutive_errors, max_errors, e)
-                if consecutive_errors >= max_errors:
-                    logger.critical("Too many review loop errors, stopping")
-                    break
-                self.settings_changed.wait(60)
-
-        self.vocab_service.remove_session()
-
-    def show_word_popup(self, word) -> None:
-        """Show word popup notification."""
-        if not word:
-            return
-
-        translation, trans_lang = self.vocab_service.get_translation_with_lang(word.id)
-
-        abbrev = self.vocab_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
-
-        body = f"<b>{word.phrase}</b>"
-        if translation:
-            body += f"\n→ {translation} [{abbrev}]"
-
-        self._set_current_phrase(word.phrase)
-        self.vocab_service.review_word(word.id)
-        self.notify(body)
-
-    def check_wotd(self) -> None:
-        """Check and show Word of the Day if enabled."""
-        try:
-            word = self.vocab_service.get_word_of_the_day()
-            if word:
-                self._set_current_phrase(word.phrase)
-                body = f"<b>{word.phrase}</b>\n→ {word.translation}"
-                self.notify(body, "Word of the Day")
-        except Exception as e:
-            logger.exception("WOTD error: %s", e)
-        finally:
-            self.vocab_service.remove_session()
-
-    @staticmethod
-    def _set_current_phrase(phrase: str) -> None:
-        """Set current phrase for discard hotkey."""
-        with open(TEMP_PHRASE_FILE, "w") as f:
-            f.write(phrase)
+    def on_show_next(self, widget=None) -> None:
+        """Show next word immediately."""
+        word = self.scheduler.on_show_next()
+        if word:
+            self.tray.set_label(str(word.phrase)[:20])
 
     def get_current_phrase(self) -> str | None:
-        """Get current word from temp file or memory."""
-        if os.path.exists(TEMP_PHRASE_FILE):
-            with open(TEMP_PHRASE_FILE) as f:
-                return f.read().strip()
-        with self._state_lock:
-            return self.current_word.phrase if self.current_word else None
-
-    def on_show_next(self, widget=None) -> None:
-        """Show next word immediately (falls back to soonest upcoming if none due)."""
-        word = self.vocab_service.get_next_word()
-        if word:
-            with self._state_lock:
-                self.current_word = word
-            self.show_word_popup(word)
-            self.tray.set_label(str(word.phrase)[:20])
+        """Get current word from scheduler."""
+        return self.scheduler.get_current_phrase() if self.scheduler else None
 
     def on_show_stats(self, widget=None) -> None:
         """Show stats window."""
@@ -277,14 +183,8 @@ class VocabApp(Gtk.Application):
 
     def on_pause(self, widget=None) -> None:
         """Toggle pause/resume reviews."""
-        with self._state_lock:
-            if self.paused_until > time.time():
-                self.paused_until = 0.0
-                self.tray.set_pause_label("Pause (1 hour)")
-            else:
-                self.paused_until = time.time() + 3600
-                self.tray.set_pause_label("Resume")
-        self.settings_changed.set()
+        label = self.scheduler.on_pause()
+        self.tray.set_pause_label(label)
 
     def on_settings(self, widget=None) -> None:
         """Show settings window."""
@@ -318,9 +218,8 @@ class VocabApp(Gtk.Application):
 
     def on_quit(self, widget=None) -> None:
         """Quit application."""
-        with self._state_lock:
-            self.running = False
-        self.settings_changed.set()
+        if self.scheduler:
+            self.scheduler.stop()
         self.vocab_service.close()
         self.quit()
 

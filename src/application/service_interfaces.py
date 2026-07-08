@@ -4,6 +4,26 @@ from abc import ABC, abstractmethod
 
 from domain.entities import Word
 
+CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"]
+
+
+class WordSource(ABC):
+    """Abstract source for Word of the Day words."""
+
+    @abstractmethod
+    def get_word(self, level: str) -> dict | None:
+        """Get a random word for the given level.
+
+        Returns:
+            dict with 'word' and 'level' keys, or None if no word available
+        """
+        pass
+
+    @abstractmethod
+    def get_available_levels(self) -> list[str]:
+        """Get list of available CEFR levels."""
+        pass
+
 
 class AbstractTranslationService(ABC):
     """Abstract interface for translation operations."""

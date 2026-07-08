@@ -3,14 +3,15 @@
 import logging
 
 from application.service_interfaces import (
+    AbstractSettingsService,
     AbstractTranslationService,
     AbstractWordManagementService,
     AbstractWOTDService,
+    WordSource,
 )
 from domain.entities import Word
-from domain.repositories import AbstractSettingsRepository, AbstractWOTDRepository
-from infrastructure.translation import TranslationError
-from wotd import WordSourceType, get_word_source
+from domain.exceptions import TranslationError
+from domain.repositories import AbstractWOTDRepository
 
 logger = logging.getLogger(__name__)
 
@@ -20,28 +21,26 @@ class WOTDService(AbstractWOTDService):
 
     def __init__(
         self,
-        settings_repo: AbstractSettingsRepository,
+        settings_service: AbstractSettingsService,
         wotd_repo: AbstractWOTDRepository,
         word_service: AbstractWordManagementService,
         translation_service: AbstractTranslationService,
+        word_source: WordSource,
     ) -> None:
-        self.settings_repo = settings_repo
+        self.settings_service = settings_service
         self.wotd_repo = wotd_repo
         self.word_service = word_service
         self.translation_service = translation_service
-
-    def _get_setting(self, key: str, default: str) -> str:
-        setting = self.settings_repo.get(key)
-        return setting.value if setting else default
+        self.word_source = word_source
 
     def is_wotd_enabled(self) -> bool:
         """Check if Word of the Day is enabled."""
-        enabled = self._get_setting("wotd_enabled", "false")
+        enabled = self.settings_service.get_setting("wotd_enabled", "false")
         return enabled == "true"
 
     def get_wotd_level(self) -> str:
         """Get the configured WOTD level."""
-        return self._get_setting("wotd_level", "B2")
+        return self.settings_service.get_setting("wotd_level", "B2")
 
     def get_word_of_the_day(self) -> Word | None:
         """Get Word of the Day - adds to vocab and returns Word entity."""
@@ -52,18 +51,16 @@ class WOTDService(AbstractWOTDService):
             return None
 
         level = self.get_wotd_level()
-        source = get_word_source(WordSourceType.LOCAL)
-
-        word_data = source.get_word(level)
+        word_data = self.word_source.get_word(level)
         if not word_data:
             return None
 
         word = word_data["word"]
         word_level = word_data["level"]
 
-        provider_name = self._get_setting("translation_provider", "google_direct")
-        source_lang = self._get_setting("source_lang", "en")
-        target_lang = self._get_setting("target_lang", "ru")
+        provider_name = self.settings_service.get_setting("translation_provider", "google_direct")
+        source_lang = self.settings_service.get_setting("source_lang", "en")
+        target_lang = self.settings_service.get_setting("target_lang", "ru")
 
         try:
             translation = self.translation_service.translate(

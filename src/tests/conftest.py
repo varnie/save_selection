@@ -8,7 +8,6 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from infrastructure.database_manager import DatabaseManager
 from infrastructure.models import Base
 
 
@@ -80,7 +79,7 @@ def stats_repo(test_db):
 @pytest.fixture
 def language_repo(test_db):
     """Create LanguageRepository with test database."""
-    from repositories.settings_repository import LanguageRepository
+    from repositories.language_repository import LanguageRepository
 
     repo = LanguageRepository(test_db)
     repo.init_defaults()
@@ -107,8 +106,6 @@ def vocab_service(
     """Create VocabService with all test dependencies."""
     from application.factory import ServiceFactory
 
-    db_manager = DatabaseManager(test_db)
-
     factory = ServiceFactory(
         db=test_db,
         word_repo=word_repo,
@@ -121,14 +118,14 @@ def vocab_service(
 
     from application.vocab_service import VocabService
 
-    return VocabService(db_manager=db_manager, factory=factory)
+    return VocabService(db=test_db, factory=factory)
 
 
 @pytest.fixture
 def word_service(
     word_repo,
     language_repo,
-    settings_repo,
+    settings_service,
     mock_translation_service,
 ):
     """Create WordManagementService for unit testing."""
@@ -137,20 +134,20 @@ def word_service(
     return WordManagementService(
         word_repo=word_repo,
         language_repo=language_repo,
-        settings_repo=settings_repo,
+        settings_service=settings_service,
         translation_service=mock_translation_service,
     )
 
 
 @pytest.fixture
-def review_service(word_repo, stats_repo, settings_repo):
+def review_service(word_repo, stats_repo, settings_service):
     """Create ReviewService for unit testing."""
     from application.review_service import ReviewService
 
     return ReviewService(
         word_repo=word_repo,
         stats_repo=stats_repo,
-        settings_repo=settings_repo,
+        settings_service=settings_service,
     )
 
 

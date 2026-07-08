@@ -20,7 +20,6 @@ from application.word_service import WordManagementService
 from application.wotd_service import WOTDService
 from config import read_config
 from constants import CONFIG_FILE, DEFAULT_DB_PATH
-from infrastructure.database_manager import DatabaseManager
 from infrastructure.translation import TranslationServiceImpl
 from repositories import (
     LanguageRepository,
@@ -75,8 +74,6 @@ def create_vocab_service(
     wotd_repo = WOTDRepository(db)
     translation_service = TranslationServiceImpl()
 
-    db_manager = DatabaseManager(db)
-
     factory = ServiceFactory(
         db=db,
         word_repo=word_repo,
@@ -88,7 +85,7 @@ def create_vocab_service(
     )
 
     return VocabService(
-        db_manager=db_manager,
+        db=db,
         factory=factory,
     )
 
