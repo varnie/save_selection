@@ -1,6 +1,6 @@
 """Word of the Day word sources."""
 
-import json
+import csv
 import os
 import random
 from abc import ABC, abstractmethod
@@ -34,20 +34,30 @@ class WordSource(ABC):
 
 
 class LocalWordSource(WordSource):
-    """Local word list source with embedded CEFR-level words."""
+    """Local word list source with CEFR-level words from CSV."""
 
     def __init__(self):
         self.words = self._load_words()
 
     def _load_words(self) -> dict[str, list[str]]:
-        """Load words from JSON file."""
+        """Load words from CSV file (headword,CEFR)."""
         base_path = os.path.dirname(os.path.abspath(__file__))
-        json_path = os.path.join(base_path, "data", "wotd_words.json")
+        csv_path = os.path.join(base_path, "data", "ENGLISH_CERF_WORDS.csv")
 
         try:
-            with open(json_path) as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
+            with open(csv_path, newline="") as f:
+                reader = csv.DictReader(f)
+                words: dict[str, list[str]] = {}
+                for row in reader:
+                    level = row.get("CEFR", "").upper()
+                    word = row.get("headword", "").strip().lower()
+                    if not level or not word:
+                        continue
+                    words.setdefault(level, [])
+                    if word not in words[level]:
+                        words[level].append(word)
+                return words
+        except (FileNotFoundError, KeyError, csv.Error):
             return {}
 
     def get_word(self, level: str) -> dict | None:

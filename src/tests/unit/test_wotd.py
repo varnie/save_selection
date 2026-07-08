@@ -5,6 +5,12 @@ from unittest.mock import mock_open, patch
 from wotd import CEFR_LEVELS, LocalWordSource, OnlineWordSource, WordSourceType, get_word_source
 
 
+def _csv_content(rows: list[list[str]]) -> str:
+    """Build CSV string from rows (header included)."""
+    lines = [",".join(row) for row in rows]
+    return "\n".join(lines) + "\n"
+
+
 class TestCEFRLevels:
     """Tests for CEFR_LEVELS constant."""
 
@@ -70,19 +76,52 @@ class TestLocalWordSource:
 
     def test_load_words_file_not_found(self):
         """Test that _load_words returns empty dict when file not found."""
-        with patch("wotd.os.path.join", return_value="/nonexistent/wotd_words.json"):
+        with patch("wotd.os.path.join", return_value="/nonexistent/ENGLISH_CERF_WORDS.csv"):
             source = LocalWordSource()
             assert source.words == {}
 
-    def test_load_words_invalid_json(self):
-        """Test that _load_words returns empty dict for invalid JSON."""
-        mock_data = '{"invalid json'
+    def test_load_words_valid_csv(self):
+        """Test that _load_words correctly parses CSV."""
+        csv_data = _csv_content([
+            ["headword", "CEFR"],
+            ["hello", "A1"],
+            ["world", "A1"],
+            ["abandon", "B1"],
+        ])
         with (
-            patch("builtins.open", mock_open(read_data=mock_data)),
+            patch("builtins.open", mock_open(read_data=csv_data)),
             patch("wotd.os.path.join", return_value="fake_path"),
         ):
             source = LocalWordSource()
-            assert source.words == {}
+            assert source.words == {"A1": ["hello", "world"], "B1": ["abandon"]}
+
+    def test_load_words_deduplicates(self):
+        """Test that _load_words deduplicates words within a level."""
+        csv_data = _csv_content([
+            ["headword", "CEFR"],
+            ["about", "A1"],
+            ["about", "A1"],
+        ])
+        with (
+            patch("builtins.open", mock_open(read_data=csv_data)),
+            patch("wotd.os.path.join", return_value="fake_path"),
+        ):
+            source = LocalWordSource()
+            assert source.words == {"A1": ["about"]}
+
+    def test_load_words_skips_bad_rows(self):
+        """Test that _load_words skips rows with missing fields."""
+        csv_data = _csv_content([
+            ["headword", "CEFR"],
+            ["good", "A1"],
+            [""],
+        ])
+        with (
+            patch("builtins.open", mock_open(read_data=csv_data)),
+            patch("wotd.os.path.join", return_value="fake_path"),
+        ):
+            source = LocalWordSource()
+            assert source.words == {"A1": ["good"]}
 
 
 class TestOnlineWordSource:
