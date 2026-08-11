@@ -36,7 +36,7 @@ def _send_macos_notification(body: str, title: str) -> bool:
 
     terminal_notifier = shutil.which("terminal-notifier")
     if terminal_notifier:
-        result = subprocess.run(  # noqa: S603
+        result = subprocess.run(  # ruff:ignore[subprocess-without-shell-equals-true]
             [terminal_notifier, "-title", clean_title, "-message", clean_body],
             capture_output=True,
             check=False,
@@ -47,7 +47,7 @@ def _send_macos_notification(body: str, title: str) -> bool:
     osascript = shutil.which("osascript")
     if osascript:
         script = f'display notification "{clean_body}" with title "{clean_title}"'
-        result = subprocess.run([osascript, "-e", script], check=False)  # noqa: S603
+        result = subprocess.run([osascript, "-e", script], check=False)  # ruff:ignore[subprocess-without-shell-equals-true]
         return result.returncode == 0
 
     logger.warning("No notification tools available (terminal-notifier or osascript)")
@@ -66,5 +66,5 @@ def _send_linux_notification(body: str, title: str) -> bool:
     if os.path.exists(ICON_PATH):
         args[1:1] = ["-i", ICON_PATH]
 
-    result = subprocess.run(args, check=False)  # noqa: S603
+    result = subprocess.run(args, check=False)  # ruff:ignore[subprocess-without-shell-equals-true]
     return result.returncode == 0

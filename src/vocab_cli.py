@@ -2,11 +2,11 @@
 """CLI module for vocab app."""
 
 import argparse
-import os
 import sys
 
 from application import create_vocab_service
-from constants import CONFIG_FILE, TEMP_PHRASE_FILE
+from application.current_phrase import clear_current_phrase, read_current_phrase, write_current_phrase
+from constants import CONFIG_FILE
 from infrastructure.clipboard import get_clipboard_text
 from infrastructure.notifications import send_notification
 
@@ -42,22 +42,18 @@ def run_cli():
             else:
                 send_notification(f"Word saved: {phrase[:30]}")
 
-            with open(TEMP_PHRASE_FILE, "w") as f:
-                f.write(phrase)
+            write_current_phrase(phrase)
         except ValueError as e:
             send_notification(f"Invalid input: {e}")
         except Exception as e:
             send_notification(f"Error: {e}")
 
     if args.delete:
-        temp_file = TEMP_PHRASE_FILE
-        if os.path.exists(temp_file):
-            with open(temp_file) as f:
-                phrase = f.read().strip()
-            if phrase:
-                vocab_service.delete_word(phrase)
-                send_notification(f"Word deleted: {phrase[:30]}")
-                os.remove(temp_file)
+        phrase = read_current_phrase()
+        if phrase:
+            vocab_service.delete_word(phrase)
+            send_notification(f"Word deleted: {phrase[:30]}")
+            clear_current_phrase()
 
     if args.next:
         body = vocab_service.get_next_word_notification()

@@ -1,17 +1,18 @@
 """ReviewScheduler - manages the background review loop, pause state, WOTD, and word popup."""
 
 import logging
-import os
 import threading
 import time
+from typing import Callable
 
+from application.current_phrase import read_current_phrase, write_current_phrase
+from application.notification_service import format_word_body
 from application.service_interfaces import (
     AbstractReviewService,
     AbstractSettingsService,
     AbstractWordManagementService,
     AbstractWOTDService,
 )
-from constants import TEMP_PHRASE_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +26,9 @@ class ReviewScheduler:
         wotd_service: AbstractWOTDService,
         settings_service: AbstractSettingsService,
         word_service: AbstractWordManagementService,
-        notify_callback: object,
-        label_callback: object,
-        cleanup_callback: object | None = None,
+        notify_callback: Callable[[str], None],
+        label_callback: Callable[[str], None],
+        cleanup_callback: Callable[[], None] | None = None,
     ) -> None:
         self.review_service = review_service
         self.wotd_service = wotd_service
@@ -81,17 +82,11 @@ class ReviewScheduler:
 
     def get_current_phrase(self) -> str | None:
         """Get current word from temp file or in-memory current_word."""
-        if os.path.exists(TEMP_PHRASE_FILE):
-            with open(TEMP_PHRASE_FILE) as f:
-                return f.read().strip()
+        phrase = read_current_phrase()
+        if phrase:
+            return phrase
         with self._state_lock:
             return self.current_word.phrase if self.current_word else None
-
-    @staticmethod
-    def _set_current_phrase(phrase: str) -> None:
-        """Write the current phrase to the temp file."""
-        with open(TEMP_PHRASE_FILE, "w") as f:
-            f.write(phrase)
 
     def _show_word_popup(self, word) -> None:
         """Show word notification."""
@@ -101,11 +96,9 @@ class ReviewScheduler:
         translation, trans_lang = self.word_service.get_translation_with_lang(word.id)
         abbrev = self.word_service.get_language_abbreviation(trans_lang) if trans_lang else "\u2014"
 
-        body = f"<b>{word.phrase}</b>"
-        if translation:
-            body += f"\n\u2192 {translation} [{abbrev}]"
+        body = format_word_body(word.phrase, translation, abbrev)
 
-        self._set_current_phrase(word.phrase)
+        write_current_phrase(word.phrase)
         self.review_service.review_word(word.id)
         self._notify(body)
 
@@ -114,8 +107,8 @@ class ReviewScheduler:
         try:
             word = self.wotd_service.get_word_of_the_day()
             if word:
-                self._set_current_phrase(word.phrase)
-                body = f"<b>{word.phrase}</b>\n\u2192 {word.translation}"
+                write_current_phrase(word.phrase)
+                body = format_word_body(word.phrase, word.translation, None)
                 self._notify(body, "Word of the Day")
         except Exception as e:
             logger.exception("WOTD error: %s", e)

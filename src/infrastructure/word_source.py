@@ -15,7 +15,7 @@ class LocalWordSource(WordSource):
 
     def _load_words(self) -> dict[str, list[str]]:
         """Load words from CSV file (headword,CEFR)."""
-        base_path = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         csv_path = os.path.join(base_path, "data", "ENGLISH_CERF_WORDS.csv")
 
         try:
@@ -42,7 +42,7 @@ class LocalWordSource(WordSource):
         if not words:
             return None
 
-        word = random.choice(words)  # noqa: S311 - not cryptographic, just word selection
+        word = random.choice(words)  # ruff:ignore[suspicious-non-cryptographic-random-usage] - not cryptographic, just word selection
         return {"word": word, "level": level}
 
     def get_available_levels(self) -> list[str]:

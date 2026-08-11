@@ -19,8 +19,8 @@ from domain.repositories import (
     AbstractWordRepository,
     AbstractWOTDRepository,
 )
+from infrastructure.word_source import LocalWordSource
 from repositories.base import AbstractDatabase
-from wotd import LocalWordSource
 
 
 @dataclass

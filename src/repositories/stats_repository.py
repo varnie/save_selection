@@ -53,13 +53,6 @@ class StatsRepository(AbstractStatsRepository):
         self.db.commit()
         return mappers.map_history(orm_history)
 
-    def get_review_count(self, word_id: int) -> int:
-        """Get number of reviews for a word (for sorting: least seen first)."""
-        return (
-            self.db.session.query(func.count(ORMHistory.id)).filter_by(word_id=word_id).scalar()
-            or 0
-        )
-
     def get_review_counts(self, word_ids: list[int]) -> dict[int, int]:
         """Get review counts for multiple words in one query."""
         if not word_ids:

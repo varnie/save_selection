@@ -1,8 +1,17 @@
 """Notification service - handles notification logic."""
 
+from application.current_phrase import write_current_phrase
 from application.review_service import ReviewService
 from application.word_service import WordManagementService
-from constants import TEMP_PHRASE_FILE
+
+
+def format_word_body(phrase: str, translation: str | None, abbrev: str | None) -> str:
+    """Build a word notification body."""
+    body = f"<b>{phrase}</b>"
+    if translation:
+        suffix = f" [{abbrev}]" if abbrev else ""
+        body += f"\n→ {translation}{suffix}"
+    return body
 
 
 class NotificationService:
@@ -28,12 +37,9 @@ class NotificationService:
 
         abbrev = self._word.get_language_abbreviation(trans_lang) if trans_lang else "—"
 
-        body = f"<b>{phrase}</b>"
-        if translation:
-            body += f"\n→ {translation} [{abbrev}]"
+        body = format_word_body(phrase, translation, abbrev)
 
-        with open(TEMP_PHRASE_FILE, "w") as f:
-            f.write(phrase)
+        write_current_phrase(phrase)
 
         self._review.review_word(word.id)
 

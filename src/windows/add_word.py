@@ -5,7 +5,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-from constants import TEMP_PHRASE_FILE
+from application.current_phrase import write_current_phrase
 
 
 class AddWordDialog(Gtk.Window):
@@ -98,8 +98,7 @@ class AddWordDialog(Gtk.Window):
             self._show_error(str(e))
             return
 
-        with open(TEMP_PHRASE_FILE, "w") as f:
-            f.write(word)
+        write_current_phrase(word)
 
         if self.on_add:
             self.on_add(word)
@@ -118,8 +117,7 @@ class AddWordDialog(Gtk.Window):
             self._show_error(str(e))
             return
 
-        with open(TEMP_PHRASE_FILE, "w") as f:
-            f.write(word)
+        write_current_phrase(word)
 
         if self.on_add:
             self.on_add(word)

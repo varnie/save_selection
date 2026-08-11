@@ -168,6 +168,7 @@ src/
 │   ├── translation.py    # Translation API implementations
 │   ├── models.py         # SQLAlchemy ORM models
 │   ├── mappers.py        # ORM ↔ Entity mappers
+│   ├── word_source.py    # LocalWordSource (CSV-backed WOTD)
 │   └── ...
 │
 ├── repositories/          # Data access implementations
@@ -180,8 +181,7 @@ src/
 │   └── wotd_repository.py
 │
 ├── vocab_gui.py          # GTK3 GUI entry point
-├── vocab_cli.py          # CLI entry point (hotkeys)
-└── wotd.py               # LocalWordSource (CSV-backed)
+└── vocab_cli.py          # CLI entry point (hotkeys)
 ```
 
 ### Design Patterns Used

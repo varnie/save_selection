@@ -142,9 +142,7 @@ class VocabApp(Gtk.Application):
 
     def _init_default_settings(self) -> None:
         """Initialize default settings if not set."""
-        defaults = DEFAULT_SETTINGS.copy()
-        defaults["autostart"] = "false"
-        for key, value in defaults.items():
+        for key, value in DEFAULT_SETTINGS.items():
             if self.vocab_service.get_setting(key) is None:
                 self.vocab_service.set_setting(key, value)
 

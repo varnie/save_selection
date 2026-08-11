@@ -29,7 +29,7 @@ def _get_macos_clipboard() -> str:
         return ""
     pbpaste = str(pbpaste_path)
     try:
-        result = subprocess.run([pbpaste], capture_output=True, text=True, check=False)  # noqa: S603
+        result = subprocess.run([pbpaste], capture_output=True, text=True, check=False)  # ruff:ignore[subprocess-without-shell-equals-true]
         return result.stdout.strip()
     except OSError as e:
         logger.warning("Failed to run pbpaste: %s", e)
@@ -43,7 +43,7 @@ def _get_linux_clipboard() -> str:
     if xclip_path:
         xclip = str(xclip_path)
         try:
-            result = subprocess.run(  # noqa: S603
+            result = subprocess.run(  # ruff:ignore[subprocess-without-shell-equals-true]
                 [xclip, "-o", "-selection", "primary"],
                 capture_output=True,
                 text=True,
@@ -60,7 +60,7 @@ def _get_linux_clipboard() -> str:
         if wl_paste_path:
             wl_paste = str(wl_paste_path)
             try:
-                result = subprocess.run(  # noqa: S603
+                result = subprocess.run(  # ruff:ignore[subprocess-without-shell-equals-true]
                     [wl_paste, "-p"],
                     capture_output=True,
                     text=True,

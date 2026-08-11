@@ -1,7 +1,6 @@
 """Settings window."""
 
 import os
-import plistlib
 
 import gi
 
@@ -10,54 +9,10 @@ from gi.repository import GLib, Gtk
 
 from application.service_interfaces import CEFR_LEVELS
 from config import DEFAULT_SETTINGS, read_config, write_config
-from constants import AUTOSTART_DIR, AUTOSTART_FILE, DEFAULT_DATA_DIR, IS_MACOS
+from constants import DEFAULT_DATA_DIR, IS_MACOS
+from infrastructure.autostart import AutostartManager
 from infrastructure.translation import ProviderRegistry
 from version import get_version
-
-
-def _get_autostart_enabled() -> bool:
-    """Check if autostart is currently enabled."""
-    return os.path.exists(AUTOSTART_FILE)
-
-
-def _set_autostart(enabled: bool):
-    """Enable or disable autostart."""
-    if enabled:
-        os.makedirs(AUTOSTART_DIR, exist_ok=True)
-        script_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(str(__file__)))), "vocab_gui.py"
-        )
-        python_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(str(__file__))))),
-            "venv",
-            "bin",
-            "python3",
-        )
-
-        if IS_MACOS:
-            # macOS LaunchAgent plist
-            plist = {
-                "Label": "com.vocab_app",
-                "ProgramArguments": [python_path, script_path],
-                "RunAtLoad": True,
-                "KeepAlive": False,
-            }
-            with open(AUTOSTART_FILE, "wb") as f:
-                plistlib.dump(plist, f)
-        else:
-            # Linux .desktop file
-            desktop_entry = f"""[Desktop Entry]
-Type=Application
-Name=Vocab App
-Exec={python_path} {script_path}
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-"""
-            with open(AUTOSTART_FILE, "w") as f:
-                f.write(desktop_entry)
-    elif os.path.exists(AUTOSTART_FILE):
-        os.remove(AUTOSTART_FILE)
 
 
 class SettingsWindow(Gtk.Window):
@@ -218,8 +173,7 @@ class SettingsWindow(Gtk.Window):
 
         # Startup settings
         self.autostart_check = Gtk.CheckButton(label="Start with system login")
-        autostart = _get_autostart_enabled()
-        self.autostart_check.set_active(autostart)
+        self.autostart_check.set_active(AutostartManager.is_enabled())
 
         # Wrap startup in frame
         startup_frame = self._make_frame("Startup", self.autostart_check)
@@ -367,7 +321,6 @@ class SettingsWindow(Gtk.Window):
             "translation_provider": self.provider_combo.get_active_id(),
             "source_lang": self.src_lang_combo.get_active_id(),
             "target_lang": self.lang_combo.get_active_id(),
-            "autostart": "true" if self.autostart_check.get_active() else "false",
             "wotd_enabled": "true" if self.wotd_check.get_active() else "false",
             "wotd_level": self.wotd_level_combo.get_active_id(),
         }
@@ -386,7 +339,10 @@ class SettingsWindow(Gtk.Window):
         self.vocab_service.save_settings(settings)
 
         # Handle autostart
-        _set_autostart(self.autostart_check.get_active())
+        if self.autostart_check.get_active():
+            AutostartManager.enable()
+        else:
+            AutostartManager.disable()
 
         if self.on_save:
             self.on_save(settings)

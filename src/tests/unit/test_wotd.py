@@ -3,7 +3,7 @@
 from unittest.mock import mock_open, patch
 
 from application.service_interfaces import CEFR_LEVELS
-from wotd import LocalWordSource
+from infrastructure.word_source import LocalWordSource
 
 
 def _csv_content(rows: list[list[str]]) -> str:
@@ -32,7 +32,7 @@ class TestCEFRLevels:
 class TestLocalWordSource:
     """Tests for LocalWordSource."""
 
-    @patch("wotd.LocalWordSource._load_words")
+    @patch("infrastructure.word_source.LocalWordSource._load_words")
     def test_get_word_returns_dict_with_word_and_level(self, mock_load):
         """Test that get_word returns dict with word and level keys."""
         mock_load.return_value = {"A1": ["hello", "world"]}
@@ -42,7 +42,7 @@ class TestLocalWordSource:
         assert "word" in result
         assert "level" in result
 
-    @patch("wotd.LocalWordSource._load_words")
+    @patch("infrastructure.word_source.LocalWordSource._load_words")
     def test_get_word_returns_none_for_empty_level(self, mock_load):
         """Test that get_word returns None for level with no words."""
         mock_load.return_value = {"A1": []}
@@ -50,7 +50,7 @@ class TestLocalWordSource:
         result = source.get_word("A1")
         assert result is None
 
-    @patch("wotd.LocalWordSource._load_words")
+    @patch("infrastructure.word_source.LocalWordSource._load_words")
     def test_get_word_returns_none_for_missing_level(self, mock_load):
         """Test that get_word returns None for non-existent level."""
         mock_load.return_value = {"A1": ["hello"]}
@@ -58,7 +58,7 @@ class TestLocalWordSource:
         result = source.get_word("B2")
         assert result is None
 
-    @patch("wotd.LocalWordSource._load_words")
+    @patch("infrastructure.word_source.LocalWordSource._load_words")
     def test_get_word_uppercases_level(self, mock_load):
         """Test that get_word uppercases the level parameter."""
         mock_load.return_value = {"A1": ["hello"]}
@@ -67,7 +67,7 @@ class TestLocalWordSource:
         assert result is not None
         assert result["level"] == "A1"
 
-    @patch("wotd.LocalWordSource._load_words")
+    @patch("infrastructure.word_source.LocalWordSource._load_words")
     def test_get_available_levels(self, mock_load):
         """Test that get_available_levels returns sorted keys."""
         mock_load.return_value = {"B2": [], "A1": [], "C1": []}
@@ -77,7 +77,7 @@ class TestLocalWordSource:
 
     def test_load_words_file_not_found(self):
         """Test that _load_words returns empty dict when file not found."""
-        with patch("wotd.os.path.join", return_value="/nonexistent/ENGLISH_CERF_WORDS.csv"):
+        with patch("infrastructure.word_source.os.path.join", return_value="/nonexistent/ENGLISH_CERF_WORDS.csv"):
             source = LocalWordSource()
             assert source.words == {}
 
@@ -91,7 +91,7 @@ class TestLocalWordSource:
         ])
         with (
             patch("builtins.open", mock_open(read_data=csv_data)),
-            patch("wotd.os.path.join", return_value="fake_path"),
+            patch("infrastructure.word_source.os.path.join", return_value="fake_path"),
         ):
             source = LocalWordSource()
             assert source.words == {"A1": ["hello", "world"], "B1": ["abandon"]}
@@ -105,7 +105,7 @@ class TestLocalWordSource:
         ])
         with (
             patch("builtins.open", mock_open(read_data=csv_data)),
-            patch("wotd.os.path.join", return_value="fake_path"),
+            patch("infrastructure.word_source.os.path.join", return_value="fake_path"),
         ):
             source = LocalWordSource()
             assert source.words == {"A1": ["about"]}
@@ -119,7 +119,7 @@ class TestLocalWordSource:
         ])
         with (
             patch("builtins.open", mock_open(read_data=csv_data)),
-            patch("wotd.os.path.join", return_value="fake_path"),
+            patch("infrastructure.word_source.os.path.join", return_value="fake_path"),
         ):
             source = LocalWordSource()
             assert source.words == {"A1": ["good"]}

@@ -101,11 +101,6 @@ class AbstractStatsRepository(ABC):
         pass
 
     @abstractmethod
-    def get_review_count(self, word_id: int) -> int:
-        """Get number of reviews for a word."""
-        pass
-
-    @abstractmethod
     def get_review_counts(self, word_ids: list[int]) -> dict[int, int]:
         """Get review counts for multiple words in one query."""
         pass

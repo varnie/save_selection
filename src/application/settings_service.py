@@ -5,7 +5,6 @@ import time
 from application.service_interfaces import AbstractSettingsService
 from config import DEFAULT_SETTINGS
 from domain.repositories import AbstractSettingsRepository
-from infrastructure.autostart import AutostartManager
 
 
 class SettingsService(AbstractSettingsService):
@@ -50,13 +49,3 @@ class SettingsService(AbstractSettingsService):
         """Save app settings."""
         for key, value in settings.items():
             self.set_setting(key, str(value))
-
-        if "autostart" in settings:
-            self._set_autostart(settings["autostart"] == "true")
-
-    def _set_autostart(self, enable: bool) -> None:
-        """Enable or disable autostart."""
-        if enable:
-            AutostartManager.enable()
-        else:
-            AutostartManager.disable()
