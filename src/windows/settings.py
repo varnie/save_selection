@@ -76,12 +76,12 @@ class SettingsWindow(Gtk.Window):
 
         # Handle legacy "google" setting and default
         current_provider = self.vocab_service.get_settings().get(
-            "translation_provider", "google_direct"
+            "translation_provider", "mymemory"
         )
-        if current_provider == "google":
-            current_provider = "google_direct"  # Legacy fallback
+        if current_provider in ("google", "google_direct"):
+            current_provider = "mymemory"  # Legacy fallback (Google direct is blocked)
         if current_provider not in [p[0] for p in ProviderRegistry.list_providers()]:
-            current_provider = "google_direct"  # Default if not found
+            current_provider = "mymemory"  # Default if not found
 
         self.provider_combo.set_active_id(current_provider)
         provider_box.pack_end(self.provider_combo, False, False, 0)

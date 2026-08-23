@@ -58,7 +58,7 @@ class WOTDService(AbstractWOTDService):
         word = word_data["word"]
         word_level = word_data["level"]
 
-        provider_name = self.settings_service.get_setting("translation_provider", "google_direct")
+        provider_name = self.settings_service.get_setting("translation_provider", "mymemory")
         source_lang = self.settings_service.get_setting("source_lang", "en")
         target_lang = self.settings_service.get_setting("target_lang", "ru")
 

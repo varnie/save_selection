@@ -104,4 +104,4 @@ class TestDefaultSettings:
     def test_default_settings_has_translation_provider(self):
         """Test that DEFAULT_SETTINGS has translation_provider."""
         assert "translation_provider" in DEFAULT_SETTINGS
-        assert DEFAULT_SETTINGS["translation_provider"] == "google_direct"
+        assert DEFAULT_SETTINGS["translation_provider"] == "mymemory"

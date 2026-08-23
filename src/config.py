@@ -33,5 +33,5 @@ DEFAULT_SETTINGS = {
     "review_interval": "3600",
     "source_lang": "en",
     "target_lang": "ru",
-    "translation_provider": "google_direct",
+    "translation_provider": "mymemory",
 }

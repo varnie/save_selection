@@ -34,7 +34,7 @@ class AbstractTranslationService(ABC):
         text: str,
         target_lang: str = "ru",
         source_lang: str = "en",
-        provider_name: str = "google_direct",
+        provider_name: str = "mymemory",
     ) -> str:
         """Translate text to target language using specified provider."""
         pass

@@ -53,29 +53,45 @@ class WordManagementService(AbstractWordManagementService):
                 f"Phrase length must be {self.MIN_PHRASE_LENGTH}-{self.MAX_PHRASE_LENGTH}"
             )
 
-        existing = self.word_repo.get_by_phrase(phrase)
-        if existing:
-            word_id = existing.id
-        else:
-            new_word = self.word_repo.add(phrase)
-            word_id = new_word.id
-
         if translation or auto_translate:
             target_lang = self._get_target_lang()
             if translation:
-                self.word_repo.add_translation(word_id, translation, target_lang)
-            elif auto_translate:
-                provider_name = self.settings_service.get_setting("translation_provider", "google_direct")
+                trans = translation
+            else:  # auto_translate
+                provider_name = self.settings_service.get_setting("translation_provider", "mymemory")
                 source_lang = self._get_source_lang()
                 try:
                     trans = self.translation_service.translate(
                         phrase, target_lang, source_lang, provider_name
                     )
-                except TranslationError:
-                    logger.warning("Auto-translate failed for '%s', skipping", phrase)
-                    trans = None
-                if trans:
-                    self.word_repo.add_translation(word_id, trans, target_lang)
+                except TranslationError as e:
+                    logger.warning("Auto-translate failed for '%s': %s", phrase, e)
+                    raise TranslationError(
+                        f"Could not translate '{phrase}'. Word was not added. "
+                        "Add it with a manual translation or try again later."
+                    ) from e
+                if not trans:
+                    raise TranslationError(
+                        f"Auto-translate returned no result for '{phrase}'. "
+                        "Word was not added."
+                    )
+
+            # We have a translation, so it is safe to persist the word.
+            existing = self.word_repo.get_by_phrase(phrase)
+            if existing:
+                word_id = existing.id
+            else:
+                new_word = self.word_repo.add(phrase)
+                word_id = new_word.id
+            self.word_repo.add_translation(word_id, trans, target_lang)
+        else:
+            # No translation requested: just store the word as-is.
+            existing = self.word_repo.get_by_phrase(phrase)
+            if existing:
+                word_id = existing.id
+            else:
+                new_word = self.word_repo.add(phrase)
+                word_id = new_word.id
 
         result = self.word_repo.get_by_phrase(phrase)
         if result is None:

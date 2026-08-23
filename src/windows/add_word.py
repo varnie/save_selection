@@ -6,6 +6,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from application.current_phrase import write_current_phrase
+from domain.exceptions import TranslationError
 
 
 class AddWordDialog(Gtk.Window):
@@ -114,6 +115,9 @@ class AddWordDialog(Gtk.Window):
         try:
             self.vocab_service.add_word(word, None, auto_translate=True)
         except ValueError as e:
+            self._show_error(str(e))
+            return
+        except TranslationError as e:
             self._show_error(str(e))
             return
 

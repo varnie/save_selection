@@ -39,6 +39,20 @@ class TestWordManagementService:
         word = word_service.add_word("hello", auto_translate=True)
         assert word.phrase == "hello"
 
+    def test_add_word_auto_translate_failure_raises_and_does_not_persist(
+        self, word_service, word_repo
+    ):
+        """If auto-translate fails, the word must NOT be added (no silent save)."""
+        from domain.exceptions import TranslationError
+        from unittest.mock import MagicMock
+
+        word_service.translation_service.translate.side_effect = TranslationError("boom")
+
+        with pytest.raises(TranslationError):
+            word_service.add_word("hello", auto_translate=True)
+
+        assert word_repo.get_by_phrase("hello") is None
+
     def test_get_words_returns_all(self, word_service):
         """Test getting all words."""
         word_service.add_word("word1", translation="слово1")

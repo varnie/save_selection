@@ -56,7 +56,7 @@ class GoogleDirectProvider(TranslationProvider):
 
             return ""
         except Exception as e:
-            logger.exception("GoogleDirect translation failed: %s", e)
+            logger.warning("GoogleDirect translation failed: %s", e)
             raise TranslationError(f"GoogleDirect translation failed: {e}") from e
 
     def get_name(self) -> str:
@@ -81,36 +81,11 @@ class GoogleDeepTranslatorProvider(TranslationProvider):
                 result = result[0] if result else ""
             return result.strip() if result else ""
         except Exception as e:
-            logger.exception("GoogleDeep translation failed: %s", e)
+            logger.warning("GoogleDeep translation failed: %s", e)
             raise TranslationError(f"GoogleDeep translation failed: {e}") from e
 
     def get_name(self) -> str:
         return "Google Translate (deep-translator)"
-
-
-class EasyGoogleProvider(TranslationProvider):
-    """Google Translate provider using easygoogletranslate library."""
-
-    def __init__(self):
-        from easygoogletranslate import EasyGoogleTranslate
-
-        self.translator = EasyGoogleTranslate(source_language="en", target_language="ru")
-
-    def translate(self, text: str, target_lang: str = "ru", source_lang: str = "en") -> str:
-        """Translate text using easygoogletranslate."""
-        try:
-            self.translator.source_language = source_lang
-            self.translator.target_language = target_lang
-            result = self.translator.translate(text)
-            if isinstance(result, list):
-                result = result[0] if result else ""
-            return result.strip() if result else ""
-        except Exception as e:
-            logger.exception("EasyGoogle translation failed: %s", e)
-            raise TranslationError(f"EasyGoogle translation failed: {e}") from e
-
-    def get_name(self) -> str:
-        return "EasyGoogle Translate"
 
 
 class MyMemoryProvider(TranslationProvider):
@@ -144,7 +119,7 @@ class MyMemoryProvider(TranslationProvider):
                 result = result[0] if result else ""
             return result.strip() if result else ""
         except Exception as e:
-            logger.exception("MyMemory translation failed: %s", e)
+            logger.warning("MyMemory translation failed: %s", e)
             raise TranslationError(f"MyMemory translation failed: {e}") from e
 
     def get_name(self) -> str:
@@ -157,7 +132,6 @@ class ProviderRegistry:
     _providers: ClassVar[dict[str, type[TranslationProvider]]] = {
         "google_direct": GoogleDirectProvider,
         "google_deep": GoogleDeepTranslatorProvider,
-        "easygoogle": EasyGoogleProvider,
         "mymemory": MyMemoryProvider,
     }
 
@@ -178,13 +152,37 @@ class ProviderRegistry:
 class TranslationServiceImpl(AbstractTranslationService):
     """Implementation of TranslationService using provider registry."""
 
+    # Fallback order tried when the selected provider fails (429, blocked, etc.).
+    # NOTE: "easygoogle" is intentionally excluded — its underlying library
+    # touches a local error.txt file on failure and is unreliable.
+    FALLBACK_ORDER = ["google_deep", "mymemory"]
+
     def translate(
         self,
         text: str,
         target_lang: str = "ru",
         source_lang: str = "en",
-        provider_name: str = "google_direct",
+        provider_name: str = "mymemory",
     ) -> str:
-        """Translate text using the specified provider."""
-        provider = ProviderRegistry.get(provider_name)
-        return provider.translate(text, target_lang, source_lang)
+        """Translate text using the specified provider.
+
+        If the selected provider fails, other available providers are tried
+        in fallback order so translation keeps working even when one backend
+        is blocked (e.g. Google returning HTTP 429).
+        """
+        providers_to_try = [provider_name] + [p for p in self.FALLBACK_ORDER if p != provider_name]
+
+        last_error: Exception | None = None
+        for name in providers_to_try:
+            try:
+                provider = ProviderRegistry.get(name)
+                result = provider.translate(text, target_lang, source_lang)
+                if result:
+                    return result
+            except Exception as e:  # noqa: BLE001 - try next provider on any failure
+                logger.warning("Translation via '%s' failed: %s", name, e)
+                last_error = e
+
+        if last_error is not None:
+            raise TranslationError(f"All translation providers failed: {last_error}") from last_error
+        raise TranslationError("All translation providers returned empty results")
