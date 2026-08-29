@@ -16,6 +16,10 @@ from application.service_interfaces import (
 
 logger = logging.getLogger(__name__)
 
+# Delay before the first Word-of-the-Day check after the app starts, so WOTD
+# does not pop up immediately on launch.
+WOTD_INITIAL_DELAY_SECONDS = 300
+
 
 class ReviewScheduler:
     """Manages the background review loop, pause state, WOTD check, and word popup logic."""
@@ -50,7 +54,7 @@ class ReviewScheduler:
         self.running = True
         self._review_thread = threading.Thread(target=self._review_loop, daemon=True)
         self._review_thread.start()
-        threading.Timer(2.0, self._check_wotd).start()
+        threading.Timer(WOTD_INITIAL_DELAY_SECONDS, self._check_wotd).start()
 
     def stop(self) -> None:
         """Signal the review loop to stop."""
