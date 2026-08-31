@@ -16,9 +16,10 @@ from application.service_interfaces import (
 
 logger = logging.getLogger(__name__)
 
-# Delay before the first Word-of-the-Day check after the app starts, so WOTD
-# does not pop up immediately on launch.
-WOTD_INITIAL_DELAY_SECONDS = 300
+# Staggered delays so WOTD and the first review don't fire at the same moment
+# after OS boot. Both satisfy the "at least 5 minutes after launch" requirement.
+REVIEW_INITIAL_DELAY_SECONDS = 300  # 5 min — first review
+WOTD_INITIAL_DELAY_SECONDS = 360  # 6 min — WOTD, 1 min after review
 
 
 class ReviewScheduler:
@@ -123,6 +124,17 @@ class ReviewScheduler:
         """Background review loop."""
         consecutive_errors = 0
         max_errors = 3
+        # Don't show a phrase right after OS boot / app launch. Wait at least
+        # REVIEW_INITIAL_DELAY_SECONDS before the first review popup.
+        # Poll `running` so stop() can interrupt without being affected by
+        # unrelated settings changes.
+        _start = time.monotonic()
+        while time.monotonic() - _start < REVIEW_INITIAL_DELAY_SECONDS:
+            with self._state_lock:
+                if not self.running:
+                    self._cleanup_session()
+                    return
+            time.sleep(1)
         while True:
             with self._state_lock:
                 if not self.running:
