@@ -5,24 +5,20 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
+from windows import BaseWindow, padded_box
 
-class WordsTodayWindow(Gtk.Window):
+
+class WordsTodayWindow(BaseWindow):
     """Window showing words added today."""
 
     def __init__(self, vocab_service):
-        super().__init__(title="Words Added Today")
+        super().__init__(title="Words Added Today", width=500, height=400)
         self.vocab_service = vocab_service
-        self.set_default_size(500, 400)
-        self.set_position(Gtk.WindowPosition.CENTER)
         self.build_ui()
 
     def build_ui(self) -> None:
         """Build the UI."""
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        vbox.set_margin_top(10)
-        vbox.set_margin_bottom(10)
-        vbox.set_margin_left(10)
-        vbox.set_margin_right(10)
+        vbox = padded_box(spacing=6, margin=10)
         self.add(vbox)
 
         scrolled = Gtk.ScrolledWindow()

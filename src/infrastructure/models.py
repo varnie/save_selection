@@ -1,14 +1,9 @@
 """Domain models - SQLAlchemy ORM classes."""
 
-from datetime import datetime, timezone
-
 from sqlalchemy import Column, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
 
-
-def _utc_timestamp() -> int:
-    """Get current UTC timestamp."""
-    return int(datetime.now(timezone.utc).timestamp())
+from domain.time_utils import utc_now_ts as _utc_timestamp
 
 
 Base = declarative_base()

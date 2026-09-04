@@ -17,6 +17,7 @@ from domain.repositories import (
     AbstractWordRepository,
     AbstractWOTDRepository,
 )
+from domain.time_utils import today_start_ts, today_str, utc_now_ts
 
 __all__ = [
     "AbstractLanguageRepository",
@@ -32,4 +33,7 @@ __all__ = [
     "WOTDHistory",
     "Word",
     "WordStats",
+    "today_start_ts",
+    "today_str",
+    "utc_now_ts",
 ]

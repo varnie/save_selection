@@ -8,23 +8,36 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 
 from application.service_interfaces import CEFR_LEVELS
-from config import DEFAULT_SETTINGS, read_config, write_config
+from config import (
+    DATA_DIR_KEY,
+    DEFAULT_SETTINGS,
+    DEFAULT_SOURCE_LANG,
+    DEFAULT_TARGET_LANG,
+    DEFAULT_TRANSLATION_PROVIDER,
+    DEFAULT_WOTD_LEVEL,
+    REVIEW_INTERVAL_KEY,
+    SOURCE_LANG_KEY,
+    TARGET_LANG_KEY,
+    TRANSLATION_PROVIDER_KEY,
+    WOTD_ENABLED_KEY,
+    WOTD_LEVEL_KEY,
+    read_config,
+    write_config,
+)
 from constants import DEFAULT_DATA_DIR, IS_MACOS
 from infrastructure.autostart import AutostartManager
 from infrastructure.translation import ProviderRegistry
 from version import get_version
+from windows import BaseWindow, padded_box, show_message
 
 
-class SettingsWindow(Gtk.Window):
+class SettingsWindow(BaseWindow):
     """Settings window."""
 
-    def __init__(self, vocab_service, on_save=None, config_file=None):
-        super().__init__(title="Settings")
+    def __init__(self, vocab_service, config_file=None):
+        super().__init__(title="Settings", width=600, height=1100)
         self.vocab_service = vocab_service
-        self.on_save = on_save
         self.config_file = config_file
-        self.set_default_size(600, 1100)
-        self.set_position(Gtk.WindowPosition.CENTER)
 
         self._test_completed = True
 
@@ -35,15 +48,44 @@ class SettingsWindow(Gtk.Window):
         scroll = Gtk.ScrolledWindow()
         self.add(scroll)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.set_margin_top(20)
-        box.set_margin_bottom(20)
-        box.set_margin_left(20)
-        box.set_margin_right(20)
+        box = padded_box()
         scroll.add(box)
 
-        # Review settings
-        # Interval
+        box.pack_start(self._build_review_section(), False, False, 0)
+        box.pack_start(self._build_translation_section(), False, False, 0)
+        box.pack_start(self._build_shortcuts_section(), False, False, 0)
+        box.pack_start(self._build_startup_section(), False, False, 0)
+        box.pack_start(self._build_data_section(), False, False, 0)
+        box.pack_start(self._build_wotd_section(), False, False, 0)
+
+        # Buttons
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+
+        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn.connect("clicked", lambda _: self.destroy())
+        btn_box.pack_start(cancel_btn, True, True, 0)
+
+        save_btn = Gtk.Button(label="Save Settings")
+        save_btn.connect("clicked", self.on_save_settings)
+        btn_box.pack_start(save_btn, True, True, 0)
+
+        box.pack_start(btn_box, False, False, 10)
+
+        # Version footer
+        footer_label = Gtk.Label(f"App version: {get_version()}")
+        footer_label.set_xalign(0)
+        footer_label.set_margin_top(10)
+        footer_label.set_selectable(True)
+        box.pack_start(footer_label, False, False, 0)
+
+    def _fill_lang_combo(self, combo: Gtk.ComboBoxText, current_code: str) -> None:
+        """Fill a language combo box and select the current language."""
+        for lang in self.vocab_service.get_languages():
+            combo.append(lang.code, lang.name)
+        combo.set_active_id(current_code)
+
+    def _build_review_section(self) -> Gtk.Frame:
+        """Build the review interval section."""
         interval_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         interval_box.pack_start(Gtk.Label("Review Interval:"), False, False, 0)
         self.interval_combo = Gtk.ComboBoxText()
@@ -56,15 +98,15 @@ class SettingsWindow(Gtk.Window):
         ]
         for value, label in intervals:
             self.interval_combo.append(value, label)
-        current_interval = str(self.vocab_service.get_setting("review_interval", DEFAULT_SETTINGS["review_interval"]))
+        current_interval = str(
+            self.vocab_service.get_setting(REVIEW_INTERVAL_KEY, DEFAULT_SETTINGS[REVIEW_INTERVAL_KEY])
+        )
         self.interval_combo.set_active_id(current_interval)
         interval_box.pack_end(self.interval_combo, False, False, 0)
+        return self._make_frame("Review", interval_box)
 
-        # Wrap REVIEW in frame
-        review_frame = self._make_frame("Review", interval_box)
-        box.pack_start(review_frame, False, False, 0)
-
-        # Translation container for frame
+    def _build_translation_section(self) -> Gtk.Frame:
+        """Build the translation provider/languages section."""
         translation_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
         # Provider
@@ -76,12 +118,12 @@ class SettingsWindow(Gtk.Window):
 
         # Handle legacy "google" setting and default
         current_provider = self.vocab_service.get_settings().get(
-            "translation_provider", "mymemory"
+            TRANSLATION_PROVIDER_KEY, DEFAULT_TRANSLATION_PROVIDER
         )
         if current_provider in ("google", "google_direct"):
-            current_provider = "mymemory"  # Legacy fallback (Google direct is blocked)
+            current_provider = DEFAULT_TRANSLATION_PROVIDER  # Legacy fallback (Google direct is blocked)
         if current_provider not in [p[0] for p in ProviderRegistry.list_providers()]:
-            current_provider = "mymemory"  # Default if not found
+            current_provider = DEFAULT_TRANSLATION_PROVIDER  # Default if not found
 
         self.provider_combo.set_active_id(current_provider)
         provider_box.pack_end(self.provider_combo, False, False, 0)
@@ -91,10 +133,8 @@ class SettingsWindow(Gtk.Window):
         src_lang_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         src_lang_box.pack_start(Gtk.Label("Source Language:"), False, False, 0)
         self.src_lang_combo = Gtk.ComboBoxText()
-        for lang in self.vocab_service.get_languages():
-            self.src_lang_combo.append(lang.code, lang.name)
-        current_src_lang = self.vocab_service.get_settings().get("source_lang", "en")
-        self.src_lang_combo.set_active_id(current_src_lang)
+        current_src_lang = self.vocab_service.get_settings().get(SOURCE_LANG_KEY, DEFAULT_SOURCE_LANG)
+        self._fill_lang_combo(self.src_lang_combo, current_src_lang)
         src_lang_box.pack_end(self.src_lang_combo, False, False, 0)
         translation_box.pack_start(src_lang_box, False, False, 0)
 
@@ -102,10 +142,8 @@ class SettingsWindow(Gtk.Window):
         lang_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         lang_box.pack_start(Gtk.Label("Target Language:"), False, False, 0)
         self.lang_combo = Gtk.ComboBoxText()
-        for lang in self.vocab_service.get_languages():
-            self.lang_combo.append(lang.code, lang.name)
-        current_lang = self.vocab_service.get_settings().get("target_lang", "ru")
-        self.lang_combo.set_active_id(current_lang)
+        current_lang = self.vocab_service.get_settings().get(TARGET_LANG_KEY, DEFAULT_TARGET_LANG)
+        self._fill_lang_combo(self.lang_combo, current_lang)
         lang_box.pack_end(self.lang_combo, False, False, 0)
         translation_box.pack_start(lang_box, False, False, 0)
 
@@ -127,12 +165,10 @@ class SettingsWindow(Gtk.Window):
         test_btn_box.pack_start(self.test_status_label, True, True, 0)
 
         translation_box.pack_start(test_btn_box, False, False, 0)
+        return self._make_frame("Translation", translation_box)
 
-        # Wrap translation in frame
-        translation_frame = self._make_frame("Translation", translation_box)
-        box.pack_start(translation_frame, False, False, 0)
-
-        # Keyboard shortcuts container
+    def _build_shortcuts_section(self) -> Gtk.Frame:
+        """Build the keyboard shortcuts info section."""
         shortcuts_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
         # Info label - platform-specific instructions
@@ -167,19 +203,16 @@ class SettingsWindow(Gtk.Window):
         cmds_label.set_selectable(True)
         shortcuts_box.pack_start(cmds_label, False, False, 0)
 
-        # Wrap in frame
-        shortcuts_frame = self._make_frame("Keyboard Shortcuts", shortcuts_box)
-        box.pack_start(shortcuts_frame, False, False, 0)
+        return self._make_frame("Keyboard Shortcuts", shortcuts_box)
 
-        # Startup settings
+    def _build_startup_section(self) -> Gtk.Frame:
+        """Build the autostart section."""
         self.autostart_check = Gtk.CheckButton(label="Start with system login")
         self.autostart_check.set_active(AutostartManager.is_enabled())
+        return self._make_frame("Startup", self.autostart_check)
 
-        # Wrap startup in frame
-        startup_frame = self._make_frame("Startup", self.autostart_check)
-        box.pack_start(startup_frame, False, False, 0)
-
-        # Data directory
+    def _build_data_section(self) -> Gtk.Frame:
+        """Build the data directory section."""
         data_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
         hint_label = Gtk.Label(f"Leave empty to use default: {DEFAULT_DATA_DIR}")
@@ -193,20 +226,19 @@ class SettingsWindow(Gtk.Window):
 
         # Read from config file if available (JSON)
         config = read_config(self.config_file) if self.config_file else {}
-        custom_data_dir = config.get("data_dir", "")
+        custom_data_dir = config.get(DATA_DIR_KEY, "")
 
         self.data_dir_entry = Gtk.Entry()
         self.data_dir_entry.set_text(custom_data_dir)
         dir_box.pack_end(self.data_dir_entry, True, True, 0)
         data_box.pack_start(dir_box, False, False, 0)
 
-        # Wrap data in frame
-        data_frame = self._make_frame("Data", data_box)
-        box.pack_start(data_frame, False, False, 0)
+        return self._make_frame("Data", data_box)
 
-        # Word of the Day settings
+    def _build_wotd_section(self) -> Gtk.Frame:
+        """Build the Word of the Day section."""
         self.wotd_check = Gtk.CheckButton(label="Enable Word of the Day")
-        wotd_enabled = self.vocab_service.get_setting("wotd_enabled", "false") == "true"
+        wotd_enabled = self.vocab_service.get_setting(WOTD_ENABLED_KEY, "false") == "true"
         self.wotd_check.set_active(wotd_enabled)
 
         wotd_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -218,34 +250,12 @@ class SettingsWindow(Gtk.Window):
         for level in CEFR_LEVELS:
             self.wotd_level_combo.append(level, level)
 
-        current_level = self.vocab_service.get_setting("wotd_level", "B2")
+        current_level = self.vocab_service.get_setting(WOTD_LEVEL_KEY, DEFAULT_WOTD_LEVEL)
         self.wotd_level_combo.set_active_id(current_level)
         level_box.pack_end(self.wotd_level_combo, False, False, 0)
         wotd_box.pack_start(level_box, False, False, 0)
 
-        # Wrap WOTD in frame
-        wotd_frame = self._make_frame("Word of the Day", wotd_box)
-        box.pack_start(wotd_frame, False, False, 0)
-
-        # Buttons
-        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-
-        cancel_btn = Gtk.Button(label="Cancel")
-        cancel_btn.connect("clicked", lambda _: self.destroy())
-        btn_box.pack_start(cancel_btn, True, True, 0)
-
-        save_btn = Gtk.Button(label="Save Settings")
-        save_btn.connect("clicked", self.on_save_settings)
-        btn_box.pack_start(save_btn, True, True, 0)
-
-        box.pack_start(btn_box, False, False, 10)
-
-        # Version footer
-        footer_label = Gtk.Label(f"App version: {get_version()}")
-        footer_label.set_xalign(0)
-        footer_label.set_margin_top(10)
-        footer_label.set_selectable(True)
-        box.pack_start(footer_label, False, False, 0)
+        return self._make_frame("Word of the Day", wotd_box)
 
     def _make_frame(self, title: str, content: Gtk.Widget) -> Gtk.Frame:
         """Wrap content in a frame with a border."""
@@ -266,9 +276,9 @@ class SettingsWindow(Gtk.Window):
         source_lang = self.src_lang_combo.get_active_id()
         target_lang = self.lang_combo.get_active_id()
 
-        self.vocab_service.set_setting("translation_provider", provider)
-        self.vocab_service.set_setting("source_lang", source_lang)
-        self.vocab_service.set_setting("target_lang", target_lang)
+        self.vocab_service.set_setting(TRANSLATION_PROVIDER_KEY, provider)
+        self.vocab_service.set_setting(SOURCE_LANG_KEY, source_lang)
+        self.vocab_service.set_setting(TARGET_LANG_KEY, target_lang)
 
         provider_name = ProviderRegistry.get(provider).get_name()
         self.test_status_label.set_text(f"Testing {provider_name}...")
@@ -317,12 +327,12 @@ class SettingsWindow(Gtk.Window):
     def on_save_settings(self, widget: Gtk.Widget) -> None:
         """Save settings."""
         settings = {
-            "review_interval": self.interval_combo.get_active_id(),
-            "translation_provider": self.provider_combo.get_active_id(),
-            "source_lang": self.src_lang_combo.get_active_id(),
-            "target_lang": self.lang_combo.get_active_id(),
-            "wotd_enabled": "true" if self.wotd_check.get_active() else "false",
-            "wotd_level": self.wotd_level_combo.get_active_id(),
+            REVIEW_INTERVAL_KEY: self.interval_combo.get_active_id(),
+            TRANSLATION_PROVIDER_KEY: self.provider_combo.get_active_id(),
+            SOURCE_LANG_KEY: self.src_lang_combo.get_active_id(),
+            TARGET_LANG_KEY: self.lang_combo.get_active_id(),
+            WOTD_ENABLED_KEY: "true" if self.wotd_check.get_active() else "false",
+            WOTD_LEVEL_KEY: self.wotd_level_combo.get_active_id(),
         }
 
         new_data_dir = self.data_dir_entry.get_text().strip()
@@ -330,10 +340,10 @@ class SettingsWindow(Gtk.Window):
         data_dir_changed = False
         if self.config_file:
             config = read_config(self.config_file)
-            old_data_dir = config.get("data_dir", "")
+            old_data_dir = config.get(DATA_DIR_KEY, "")
             if old_data_dir != new_data_dir:
                 data_dir_changed = True
-            config["data_dir"] = new_data_dir
+            config[DATA_DIR_KEY] = new_data_dir
             write_config(self.config_file, config)
 
         self.vocab_service.save_settings(settings)
@@ -344,9 +354,6 @@ class SettingsWindow(Gtk.Window):
         else:
             AutostartManager.disable()
 
-        if self.on_save:
-            self.on_save(settings)
-
         # Show confirmation
         if data_dir_changed:
             msg_text = (
@@ -356,12 +363,4 @@ class SettingsWindow(Gtk.Window):
         else:
             msg_text = "Settings saved successfully!"
 
-        msg = Gtk.MessageDialog(
-            self,
-            Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.INFO,
-            Gtk.ButtonsType.OK,
-            msg_text,
-        )
-        msg.run()
-        msg.destroy()
+        show_message(self, Gtk.MessageType.INFO, msg_text)

@@ -5,25 +5,21 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
+from windows import BaseWindow, padded_box, show_message
 
-class StatsWindow(Gtk.Window):
+
+class StatsWindow(BaseWindow):
     """Statistics window."""
 
     def __init__(self, vocab_service):
-        super().__init__(title="Vocabulary Statistics")
+        super().__init__(title="Vocabulary Statistics", width=400, height=450)
         self.vocab_service = vocab_service
-        self.set_default_size(400, 450)
-        self.set_position(Gtk.WindowPosition.CENTER)
 
         self.build_ui()
 
     def build_ui(self) -> None:
         """Build the UI."""
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.set_margin_top(20)
-        box.set_margin_bottom(20)
-        box.set_margin_left(20)
-        box.set_margin_right(20)
+        box = padded_box()
         self.add(box)
 
         # Stats
@@ -93,31 +89,9 @@ class StatsWindow(Gtk.Window):
         if dialog.run() == Gtk.ResponseType.OK:
             try:
                 self.vocab_service.export_csv(dialog.get_filename())
-                msg = Gtk.MessageDialog(
-                    self,
-                    Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                    Gtk.MessageType.INFO,
-                    Gtk.ButtonsType.OK,
-                    "Export successful!",
-                )
-                msg.run()
-                msg.destroy()
+                show_message(self, Gtk.MessageType.INFO, "Export successful!")
             except Exception as e:
-                msg = Gtk.MessageDialog(
-                    self,
-                    Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                    Gtk.MessageType.ERROR,
-                    Gtk.ButtonsType.OK,
-                    f"Export failed: {e}",
-                )
-                msg.run()
-                msg.destroy()
+                show_message(self, Gtk.MessageType.ERROR, f"Export failed: {e}")
 
         dialog.destroy()
 
-    def refresh(self) -> None:
-        """Refresh stats."""
-        child = self.get_child()
-        if child:
-            self.remove(child)
-        self.build_ui()

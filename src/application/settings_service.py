@@ -3,7 +3,13 @@
 import time
 
 from application.service_interfaces import AbstractSettingsService
-from config import DEFAULT_SETTINGS
+from config import (
+    DEFAULT_SETTINGS,
+    REVIEW_INTERVAL_KEY,
+    SOURCE_LANG_KEY,
+    TARGET_LANG_KEY,
+    TRANSLATION_PROVIDER_KEY,
+)
 from domain.repositories import AbstractSettingsRepository
 
 
@@ -36,10 +42,12 @@ class SettingsService(AbstractSettingsService):
         all_settings = self.settings_repo.get_all()
 
         result = {
-            "review_interval": int(all_settings.get("review_interval", DEFAULT_SETTINGS["review_interval"])),
-            "source_lang": all_settings.get("source_lang", DEFAULT_SETTINGS["source_lang"]),
-            "target_lang": all_settings.get("target_lang", DEFAULT_SETTINGS["target_lang"]),
-            "translation_provider": all_settings.get("translation_provider", DEFAULT_SETTINGS["translation_provider"]),
+            REVIEW_INTERVAL_KEY: int(all_settings.get(REVIEW_INTERVAL_KEY, DEFAULT_SETTINGS[REVIEW_INTERVAL_KEY])),
+            SOURCE_LANG_KEY: all_settings.get(SOURCE_LANG_KEY, DEFAULT_SETTINGS[SOURCE_LANG_KEY]),
+            TARGET_LANG_KEY: all_settings.get(TARGET_LANG_KEY, DEFAULT_SETTINGS[TARGET_LANG_KEY]),
+            TRANSLATION_PROVIDER_KEY: all_settings.get(
+                TRANSLATION_PROVIDER_KEY, DEFAULT_SETTINGS[TRANSLATION_PROVIDER_KEY]
+            ),
         }
         self._cache = result
         self._cache_ts = now

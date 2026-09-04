@@ -28,11 +28,6 @@ class AbstractWordRepository(ABC):
         pass
 
     @abstractmethod
-    def exists(self, phrase: str) -> bool:
-        """Check if word exists."""
-        pass
-
-    @abstractmethod
     def get_all(
         self,
         search: str | None = None,
@@ -120,8 +115,8 @@ class AbstractSettingsRepository(ABC):
     """Abstract interface for settings operations."""
 
     @abstractmethod
-    def get(self, key: str, default: str | None = None) -> Setting | None:
-        """Get a setting value."""
+    def get(self, key: str) -> Setting | None:
+        """Get a setting value, or None if not stored."""
         pass
 
     @abstractmethod

@@ -1,7 +1,6 @@
 """Word management service - handles word CRUD operations."""
 
 import logging
-from datetime import datetime, timezone
 
 from application.service_interfaces import (
     AbstractSettingsService,
@@ -11,6 +10,7 @@ from application.service_interfaces import (
 from domain.entities import Word
 from domain.exceptions import TranslationError
 from domain.repositories import AbstractLanguageRepository, AbstractWordRepository
+from domain.time_utils import today_start_ts
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +34,13 @@ class WordManagementService(AbstractWordManagementService):
         self.translation_service = translation_service
 
     def _get_target_lang(self) -> str:
-        return self.settings_service.get_setting("target_lang", "ru")
+        return self.settings_service.get_target_lang()
 
     def _get_source_lang(self) -> str:
-        return self.settings_service.get_setting("source_lang", "en")
+        return self.settings_service.get_source_lang()
 
-    def add_word(
-        self, phrase: str, translation: str | None = None, auto_translate: bool = False
-    ) -> Word:
-        """Add a new word or add translation to existing word."""
+    def _normalize_phrase(self, phrase: str) -> str:
+        """Strip, lowercase and validate a phrase."""
         if not phrase or not phrase.strip():
             raise ValueError("Phrase cannot be empty")
 
@@ -52,13 +50,27 @@ class WordManagementService(AbstractWordManagementService):
             raise ValueError(
                 f"Phrase length must be {self.MIN_PHRASE_LENGTH}-{self.MAX_PHRASE_LENGTH}"
             )
+        return phrase
+
+    def _get_or_create_id(self, phrase: str) -> int:
+        """Return the id of an existing word or create it."""
+        existing = self.word_repo.get_by_phrase(phrase)
+        if existing:
+            return existing.id
+        return self.word_repo.add(phrase).id
+
+    def add_word(
+        self, phrase: str, translation: str | None = None, auto_translate: bool = False
+    ) -> Word:
+        """Add a new word or add translation to existing word."""
+        phrase = self._normalize_phrase(phrase)
 
         if translation or auto_translate:
             target_lang = self._get_target_lang()
             if translation:
                 trans = translation
             else:  # auto_translate
-                provider_name = self.settings_service.get_setting("translation_provider", "mymemory")
+                provider_name = self.settings_service.get_translation_provider()
                 source_lang = self._get_source_lang()
                 try:
                     trans = self.translation_service.translate(
@@ -77,21 +89,11 @@ class WordManagementService(AbstractWordManagementService):
                     )
 
             # We have a translation, so it is safe to persist the word.
-            existing = self.word_repo.get_by_phrase(phrase)
-            if existing:
-                word_id = existing.id
-            else:
-                new_word = self.word_repo.add(phrase)
-                word_id = new_word.id
+            word_id = self._get_or_create_id(phrase)
             self.word_repo.add_translation(word_id, trans, target_lang)
         else:
             # No translation requested: just store the word as-is.
-            existing = self.word_repo.get_by_phrase(phrase)
-            if existing:
-                word_id = existing.id
-            else:
-                new_word = self.word_repo.add(phrase)
-                word_id = new_word.id
+            self._get_or_create_id(phrase)
 
         result = self.word_repo.get_by_phrase(phrase)
         if result is None:
@@ -112,13 +114,7 @@ class WordManagementService(AbstractWordManagementService):
     def get_words_added_today(self) -> list[Word]:
         """Get words added today."""
         target_lang = self._get_target_lang()
-        now = datetime.now(timezone.utc)
-        today_start = int(datetime(now.year, now.month, now.day).timestamp())
-        return self.word_repo.get_all(target_lang=target_lang, since=today_start)
-
-    def get_word(self, phrase: str) -> Word | None:
-        """Get word by phrase."""
-        return self.word_repo.get_by_phrase(phrase)
+        return self.word_repo.get_all(target_lang=target_lang, since=today_start_ts())
 
     def get_translation(self, word_id: int) -> str | None:
         """Get translation for a word."""
@@ -139,15 +135,7 @@ class WordManagementService(AbstractWordManagementService):
 
     def update_word(self, word_id: int, phrase: str, translation: str | None = None) -> None:
         """Update word phrase and optionally translation."""
-        if not phrase or not phrase.strip():
-            raise ValueError("Phrase cannot be empty")
-
-        phrase = phrase.strip().lower()
-
-        if len(phrase) < self.MIN_PHRASE_LENGTH or len(phrase) > self.MAX_PHRASE_LENGTH:
-            raise ValueError(
-                f"Phrase length must be {self.MIN_PHRASE_LENGTH}-{self.MAX_PHRASE_LENGTH}"
-            )
+        phrase = self._normalize_phrase(phrase)
 
         self.word_repo.update_word(word_id, phrase)
         if translation:

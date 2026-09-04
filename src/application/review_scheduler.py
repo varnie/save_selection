@@ -8,6 +8,7 @@ from typing import Callable
 from application.current_phrase import read_current_phrase, write_current_phrase
 from application.notification_service import format_word_body
 from application.service_interfaces import (
+    AbstractNotificationService,
     AbstractReviewService,
     AbstractSettingsService,
     AbstractWordManagementService,
@@ -34,6 +35,7 @@ class ReviewScheduler:
         notify_callback: Callable[[str], None],
         label_callback: Callable[[str], None],
         cleanup_callback: Callable[[], None] | None = None,
+        notification_service: AbstractNotificationService | None = None,
     ) -> None:
         self.review_service = review_service
         self.wotd_service = wotd_service
@@ -42,6 +44,7 @@ class ReviewScheduler:
         self._notify = notify_callback
         self._update_label = label_callback
         self._cleanup_session = cleanup_callback or (lambda: None)
+        self._notification_service = notification_service
 
         self.current_word = None
         self.paused_until = 0.0
@@ -49,19 +52,24 @@ class ReviewScheduler:
         self._state_lock = threading.Lock()
         self._settings_changed = threading.Event()
         self._review_thread: threading.Thread | None = None
+        self._wotd_timer: threading.Timer | None = None
 
     def start(self) -> None:
         """Start the review thread and schedule WOTD check."""
         self.running = True
         self._review_thread = threading.Thread(target=self._review_loop, daemon=True)
         self._review_thread.start()
-        threading.Timer(WOTD_INITIAL_DELAY_SECONDS, self._check_wotd).start()
+        self._wotd_timer = threading.Timer(WOTD_INITIAL_DELAY_SECONDS, self._check_wotd)
+        self._wotd_timer.daemon = True
+        self._wotd_timer.start()
 
     def stop(self) -> None:
         """Signal the review loop to stop."""
         with self._state_lock:
             self.running = False
         self._settings_changed.set()
+        if self._wotd_timer is not None:
+            self._wotd_timer.cancel()
 
     def on_pause(self) -> str:
         """Toggle pause/resume reviews. Returns the new pause label text."""
@@ -98,8 +106,13 @@ class ReviewScheduler:
         if not word:
             return
 
+        if self._notification_service is not None:
+            body = self._notification_service.build_for_word(word)
+            self._notify(body)
+            return
+
         translation, trans_lang = self.word_service.get_translation_with_lang(word.id)
-        abbrev = self.word_service.get_language_abbreviation(trans_lang) if trans_lang else "\u2014"
+        abbrev = self.word_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
 
         body = format_word_body(word.phrase, translation, abbrev)
 
@@ -142,9 +155,7 @@ class ReviewScheduler:
                 current_paused = self.paused_until
 
             try:
-                interval = int(
-                    self.settings_service.get_setting("review_interval", "3600")
-                )
+                interval = self.settings_service.get_review_interval()
 
                 now = time.time()
                 if now < current_paused:

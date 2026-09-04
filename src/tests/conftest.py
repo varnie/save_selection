@@ -160,11 +160,11 @@ def settings_service(settings_repo):
 
 
 @pytest.fixture
-def export_service(word_repo):
+def export_service(word_repo, settings_service):
     """Create ExportService for unit testing."""
     from application.export_service import ExportService
 
-    return ExportService(word_repo)
+    return ExportService(word_repo, settings_service)
 
 
 @pytest.fixture

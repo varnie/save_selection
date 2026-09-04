@@ -9,6 +9,7 @@ from application.service_interfaces import (
     AbstractWOTDService,
     WordSource,
 )
+from config import DEFAULT_WOTD_LEVEL, WOTD_ENABLED_KEY, WOTD_LEVEL_KEY
 from domain.entities import Word
 from domain.exceptions import TranslationError
 from domain.repositories import AbstractWOTDRepository
@@ -35,12 +36,12 @@ class WOTDService(AbstractWOTDService):
 
     def is_wotd_enabled(self) -> bool:
         """Check if Word of the Day is enabled."""
-        enabled = self.settings_service.get_setting("wotd_enabled", "false")
+        enabled = self.settings_service.get_setting(WOTD_ENABLED_KEY, "false")
         return enabled == "true"
 
     def get_wotd_level(self) -> str:
         """Get the configured WOTD level."""
-        return self.settings_service.get_setting("wotd_level", "B2")
+        return self.settings_service.get_setting(WOTD_LEVEL_KEY, DEFAULT_WOTD_LEVEL) or DEFAULT_WOTD_LEVEL
 
     def get_word_of_the_day(self) -> Word | None:
         """Get Word of the Day - adds to vocab and returns Word entity."""
@@ -58,9 +59,9 @@ class WOTDService(AbstractWOTDService):
         word = word_data["word"]
         word_level = word_data["level"]
 
-        provider_name = self.settings_service.get_setting("translation_provider", "mymemory")
-        source_lang = self.settings_service.get_setting("source_lang", "en")
-        target_lang = self.settings_service.get_setting("target_lang", "ru")
+        provider_name = self.settings_service.get_translation_provider()
+        source_lang = self.settings_service.get_source_lang()
+        target_lang = self.settings_service.get_target_lang()
 
         try:
             translation = self.translation_service.translate(

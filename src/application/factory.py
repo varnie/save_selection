@@ -6,7 +6,9 @@ from application.export_service import ExportService
 from application.notification_service import NotificationService
 from application.review_service import ReviewService
 from application.service_interfaces import (
+    AbstractReviewService,
     AbstractTranslationService,
+    AbstractWordManagementService,
 )
 from application.settings_service import SettingsService
 from application.translation_test_service import TranslationTestService
@@ -68,12 +70,12 @@ class ServiceFactory:
 
     def create_export_service(self) -> ExportService:
         """Create export service."""
-        return ExportService(self.word_repo)
+        return ExportService(self.word_repo, self.settings_service)
 
     def create_notification_service(
         self,
-        review_service: ReviewService,
-        word_service: WordManagementService,
+        review_service: AbstractReviewService,
+        word_service: AbstractWordManagementService,
     ) -> NotificationService:
         """Create notification service."""
         return NotificationService(

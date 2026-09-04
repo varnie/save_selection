@@ -42,3 +42,18 @@ class AbstractDatabase(ABC):
     def remove_session(self) -> None:
         """Remove scoped session (for threading)."""
         pass
+
+
+class AbstractRepository:
+    """Base class for repositories sharing a database handle."""
+
+    def __init__(self, db: AbstractDatabase) -> None:
+        self.db = db
+
+    def commit(self) -> None:
+        """Commit the current transaction."""
+        self.db.commit()
+
+    def rollback(self) -> None:
+        """Roll back the current transaction."""
+        self.db.rollback()

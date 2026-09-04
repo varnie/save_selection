@@ -29,7 +29,6 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "settings")
 
 # Database
 DEFAULT_DB_PATH = os.path.join(DEFAULT_DATA_DIR, "vocab.db")
-DB_FILENAME = "vocab.db"
 
 # Temp files
 TEMP_PHRASE_FILE = os.path.join(tempfile.gettempdir(), "last_vocab_phrase")

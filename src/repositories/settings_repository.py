@@ -4,17 +4,14 @@ from domain.entities import Setting
 from domain.repositories import AbstractSettingsRepository
 from infrastructure import mappers
 from infrastructure.models import Setting as ORMSetting
-from repositories.base import AbstractDatabase
+from repositories.base import AbstractRepository
 
 
-class SettingsRepository(AbstractSettingsRepository):
+class SettingsRepository(AbstractSettingsRepository, AbstractRepository):
     """Repository for settings."""
 
-    def __init__(self, db: AbstractDatabase):
-        self.db = db
-
-    def get(self, key: str, default: str | None = None) -> Setting | None:
-        """Get a setting value as domain entity."""
+    def get(self, key: str) -> Setting | None:
+        """Get a setting value as domain entity, or None if not stored."""
         orm = self.db.session.query(ORMSetting).filter_by(key=key).first()
         if orm:
             return mappers.map_setting(orm)
@@ -33,4 +30,4 @@ class SettingsRepository(AbstractSettingsRepository):
         else:
             setting = ORMSetting(key=key, value=value)
             self.db.session.add(setting)
-        self.db.commit()
+        self.commit()

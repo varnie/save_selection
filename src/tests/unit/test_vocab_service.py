@@ -136,8 +136,9 @@ class TestVocabService:
         mock_factory = MagicMock()
 
         mock_settings_service = MagicMock()
-        settings = {"source_lang": "en", "target_lang": "ru"}
-        mock_settings_service.get_setting.side_effect = lambda key, default: settings.get(key, default)
+        mock_settings_service.get_source_lang.return_value = "en"
+        mock_settings_service.get_target_lang.return_value = "ru"
+        mock_settings_service.get_translation_provider.return_value = "google_direct"
 
         mock_translation_test_service = MagicMock()
         mock_translation_test_service.test_connection.return_value = True
@@ -154,14 +155,9 @@ class TestVocabService:
 
         service = VocabService(db=mock_db, factory=mock_factory)
 
-        with patch.object(service, 'get_setting', side_effect=lambda key, default: {
-            "source_lang": "en",
-            "target_lang": "ru",
-            "translation_provider": "google_direct",
-        }.get(key, default)):
-            result = service.test_translation_api()
+        result = service.test_translation_api()
 
-            assert result is True
-            mock_translation_test_service.test_connection.assert_called_once_with(
-                "en", "ru", "google_direct"
-            )
+        assert result is True
+        mock_translation_test_service.test_connection.assert_called_once_with(
+            "en", "ru", "google_direct"
+        )

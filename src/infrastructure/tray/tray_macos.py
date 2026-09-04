@@ -82,5 +82,3 @@ class MacOSTray:
     def set_pause_label(self, label):
         self._pause_item.setTitle_(label)
 
-    def set_pause_callback(self, callback):
-        self._delegate._callbacks[self._pause_tag] = callback

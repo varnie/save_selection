@@ -11,7 +11,7 @@ from gi.repository import Gio, Gtk
 
 from application import create_vocab_service
 from application.review_scheduler import ReviewScheduler
-from config import DEFAULT_SETTINGS
+from config import DEFAULT_SETTINGS, GNOME_TRAY_WARNING_KEY
 from constants import CONFIG_FILE, IS_LINUX, IS_MACOS
 from infrastructure.notifications import send_notification
 from windows.add_word import AddWordDialog
@@ -88,6 +88,7 @@ class VocabApp(Gtk.Application):
             notify_callback=self.notify,
             label_callback=self.tray.set_label,
             cleanup_callback=self.vocab_service.remove_session,
+            notification_service=self.vocab_service.notification_service,
         )
         self.scheduler.start()
 
@@ -97,13 +98,13 @@ class VocabApp(Gtk.Application):
             if get_desktop_environment() in (
                 "gnome",
                 "ubuntu",
-            ) and not self.vocab_service.get_setting("gnome_tray_warning_shown"):
+            ) and not self.vocab_service.get_setting(GNOME_TRAY_WARNING_KEY):
                 self.notify(
                     "GNOME detected. If tray icon is missing, "
                     "install 'Top Icons' or 'Tray Icons' extension.",
                     "Vocab",
                 )
-                self.vocab_service.set_setting("gnome_tray_warning_shown", "true")
+                self.vocab_service.set_setting(GNOME_TRAY_WARNING_KEY, "true")
 
     def do_activate(self):
         Gtk.Application.do_activate(self)
@@ -132,6 +133,16 @@ class VocabApp(Gtk.Application):
             win.show_all()
             self._windows[key] = win
 
+    def _open_simple(self, key, window_cls, *args) -> None:
+        """Open a window that only needs vocab_service (plus extra args)."""
+
+        def create_window():
+            win = window_cls(self.vocab_service, *args)
+            win.connect("destroy", lambda w: self._on_window_closed(key, w))
+            return win
+
+        self._open_window(key, create_window)
+
     def _on_window_closed(self, key, window=None):
         self._windows[key] = None
 
@@ -152,19 +163,9 @@ class VocabApp(Gtk.Application):
         if word:
             self.tray.set_label(str(word.phrase)[:20])
 
-    def get_current_phrase(self) -> str | None:
-        """Get current word from scheduler."""
-        return self.scheduler.get_current_phrase() if self.scheduler else None
-
     def on_show_stats(self, widget=None) -> None:
         """Show stats window."""
-
-        def create_window():
-            win = StatsWindow(self.vocab_service)
-            win.connect("destroy", lambda w: self._on_window_closed("stats", w))
-            return win
-
-        self._open_window("stats", create_window)
+        self._open_simple("stats", StatsWindow)
 
     def on_add_word(self, widget=None) -> None:
         """Show add word dialog."""
@@ -186,33 +187,15 @@ class VocabApp(Gtk.Application):
 
     def on_settings(self, widget=None) -> None:
         """Show settings window."""
-
-        def create_window():
-            win = SettingsWindow(self.vocab_service, config_file=self.config_file)
-            win.connect("destroy", lambda w: self._on_window_closed("settings", w))
-            return win
-
-        self._open_window("settings", create_window)
+        self._open_simple("settings", SettingsWindow, self.config_file)
 
     def on_words_today(self, widget=None) -> None:
         """Show words added today window."""
-
-        def create_window():
-            win = WordsTodayWindow(self.vocab_service)
-            win.connect("destroy", lambda w: self._on_window_closed("words_today", w))
-            return win
-
-        self._open_window("words_today", create_window)
+        self._open_simple("words_today", WordsTodayWindow)
 
     def on_word_browser(self, widget=None) -> None:
         """Show word browser window."""
-
-        def create_window():
-            win = WordBrowserWindow(self.vocab_service)
-            win.connect("destroy", lambda w: self._on_window_closed("browser", w))
-            return win
-
-        self._open_window("browser", create_window)
+        self._open_simple("browser", WordBrowserWindow)
 
     def on_quit(self, widget=None) -> None:
         """Quit application."""

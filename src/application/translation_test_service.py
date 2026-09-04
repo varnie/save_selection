@@ -1,6 +1,7 @@
 """Translation test service - handles translation API testing."""
 
 from application.service_interfaces import AbstractTranslationService
+from config import DEFAULT_SOURCE_LANG, DEFAULT_TARGET_LANG, DEFAULT_TRANSLATION_PROVIDER
 
 
 class TranslationTestService:
@@ -11,14 +12,17 @@ class TranslationTestService:
 
     def test_connection(
         self,
-        source_lang: str = "en",
-        target_lang: str = "ru",
-        provider_name: str = "google_direct",
+        source_lang: str = DEFAULT_SOURCE_LANG,
+        target_lang: str = DEFAULT_TARGET_LANG,
+        provider_name: str = DEFAULT_TRANSLATION_PROVIDER,
     ) -> bool:
         """Test translation API with a simple query."""
         try:
             result = self._translation_service.translate(
-                "hello", target_lang or "ru", source_lang or "en", provider_name
+                "hello",
+                target_lang or DEFAULT_TARGET_LANG,
+                source_lang or DEFAULT_SOURCE_LANG,
+                provider_name,
             )
             return bool(result)
         except Exception:

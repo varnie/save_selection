@@ -8,6 +8,7 @@ from application.factory import ServiceFactory
 from application.review_service import ReviewService
 from application.service_interfaces import (
     AbstractExportService,
+    AbstractNotificationService,
     AbstractReviewService,
     AbstractSettingsService,
     AbstractTranslationService,
@@ -18,7 +19,7 @@ from application.settings_service import SettingsService
 from application.vocab_service import VocabService
 from application.word_service import WordManagementService
 from application.wotd_service import WOTDService
-from config import read_config
+from config import DATA_DIR_KEY, read_config
 from constants import CONFIG_FILE, DEFAULT_DB_PATH
 from infrastructure.translation import TranslationServiceImpl
 from repositories import (
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 def get_db_path(config_file: str = CONFIG_FILE) -> str:
     """Determine DB path from config file or default."""
     config = read_config(config_file)
-    custom_data_dir = config.get("data_dir")
+    custom_data_dir = config.get(DATA_DIR_KEY)
 
     if isinstance(custom_data_dir, str):
         custom_db_path = os.path.join(os.path.expanduser(custom_data_dir), "vocab.db")
@@ -92,6 +93,7 @@ def create_vocab_service(
 
 __all__ = [
     "AbstractExportService",
+    "AbstractNotificationService",
     "AbstractReviewService",
     "AbstractSettingsService",
     "AbstractTranslationService",

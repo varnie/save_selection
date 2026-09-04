@@ -2,6 +2,16 @@
 
 from abc import ABC, abstractmethod
 
+from config import (
+    DEFAULT_REVIEW_INTERVAL,
+    DEFAULT_SOURCE_LANG,
+    DEFAULT_TARGET_LANG,
+    DEFAULT_TRANSLATION_PROVIDER,
+    REVIEW_INTERVAL_KEY,
+    SOURCE_LANG_KEY,
+    TARGET_LANG_KEY,
+    TRANSLATION_PROVIDER_KEY,
+)
 from domain.entities import Word
 
 CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"]
@@ -32,9 +42,9 @@ class AbstractTranslationService(ABC):
     def translate(
         self,
         text: str,
-        target_lang: str = "ru",
-        source_lang: str = "en",
-        provider_name: str = "mymemory",
+        target_lang: str = DEFAULT_TARGET_LANG,
+        source_lang: str = DEFAULT_SOURCE_LANG,
+        provider_name: str = DEFAULT_TRANSLATION_PROVIDER,
     ) -> str:
         """Translate text to target language using specified provider."""
         pass
@@ -114,6 +124,25 @@ class AbstractExportService(ABC):
         pass
 
 
+class AbstractNotificationService(ABC):
+    """Abstract interface for notification body building."""
+
+    @abstractmethod
+    def format_for_word(self, word: Word) -> str:
+        """Build a notification body for a word (no side effects)."""
+        pass
+
+    @abstractmethod
+    def build_for_word(self, word: Word) -> str:
+        """Build a notification body, track the phrase and mark reviewed."""
+        pass
+
+    @abstractmethod
+    def get_next_word_notification(self) -> str | None:
+        """Get next word notification body."""
+        pass
+
+
 class AbstractReviewService(ABC):
     """Abstract interface for review operations."""
 
@@ -165,6 +194,28 @@ class AbstractSettingsService(ABC):
     def save_settings(self, settings: dict) -> None:
         """Save app settings."""
         pass
+
+    def get_source_lang(self) -> str:
+        """Get configured source language code."""
+        return self.get_setting(SOURCE_LANG_KEY, DEFAULT_SOURCE_LANG) or DEFAULT_SOURCE_LANG
+
+    def get_target_lang(self) -> str:
+        """Get configured target language code."""
+        return self.get_setting(TARGET_LANG_KEY, DEFAULT_TARGET_LANG) or DEFAULT_TARGET_LANG
+
+    def get_translation_provider(self) -> str:
+        """Get configured translation provider name."""
+        return (
+            self.get_setting(TRANSLATION_PROVIDER_KEY, DEFAULT_TRANSLATION_PROVIDER)
+            or DEFAULT_TRANSLATION_PROVIDER
+        )
+
+    def get_review_interval(self) -> int:
+        """Get review interval in seconds (falls back to default on bad values)."""
+        try:
+            return int(self.get_setting(REVIEW_INTERVAL_KEY, DEFAULT_REVIEW_INTERVAL) or DEFAULT_REVIEW_INTERVAL)
+        except (TypeError, ValueError):
+            return int(DEFAULT_REVIEW_INTERVAL)
 
 
 class AbstractWOTDService(ABC):

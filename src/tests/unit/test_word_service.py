@@ -91,9 +91,9 @@ class TestWordManagementService:
         word = word_service.add_word("old", translation="старый")
         word_service.update_word(word.id, "new", translation="новый")
 
-        updated = word_service.get_word("new")
-        assert updated is not None
-        assert updated.translation == "новый"
+        updated = word_service.get_words(search="new")
+        assert len(updated) == 1
+        assert updated[0].translation == "новый"
 
     def test_get_translation(self, word_service):
         """Test getting translation."""

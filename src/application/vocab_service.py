@@ -58,9 +58,9 @@ class VocabService:
         return self.language_repo.get_all()
 
     def test_translation_api(self) -> bool:
-        source_lang = self.get_setting("source_lang", "en")
-        target_lang = self.get_setting("target_lang", "ru")
-        provider_name = self.get_setting("translation_provider", "mymemory")
+        source_lang = self.settings_service.get_source_lang()
+        target_lang = self.settings_service.get_target_lang()
+        provider_name = self.settings_service.get_translation_provider()
         return self.translation_test_service.test_connection(
             source_lang, target_lang, provider_name
         )

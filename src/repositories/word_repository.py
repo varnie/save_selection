@@ -3,6 +3,7 @@
 
 from sqlalchemy.orm import contains_eager, joinedload
 
+from config import DEFAULT_TARGET_LANG
 from domain.entities import Translation, Word
 from domain.repositories import AbstractWordRepository
 from infrastructure import mappers
@@ -10,14 +11,15 @@ from infrastructure.models import Language as ORMLanguage
 from infrastructure.models import Translation as ORMTranslation
 from infrastructure.models import Word as ORMWord
 from infrastructure.models import WordStats as ORMWordStats
-from repositories.base import AbstractDatabase
+from repositories.base import AbstractRepository
 
 
-class WordRepository(AbstractWordRepository):
+class WordRepository(AbstractWordRepository, AbstractRepository):
     """Repository for word operations."""
 
-    def __init__(self, db: AbstractDatabase):
-        self.db = db
+    def _get_language(self, code: str) -> ORMLanguage | None:
+        """Get language ORM row by code, or None if unknown."""
+        return self.db.session.query(ORMLanguage).filter_by(code=code).first()
 
     def add(self, phrase: str) -> Word:
         """Add a word, return its domain entity."""
@@ -27,7 +29,7 @@ class WordRepository(AbstractWordRepository):
             return mappers.map_word(orm_word)
         orm_word = ORMWord(phrase=phrase)
         self.db.session.add(orm_word)
-        self.db.commit()
+        self.commit()
         return mappers.map_word(orm_word)
 
     def get_by_phrase(self, phrase: str) -> Word | None:
@@ -45,10 +47,6 @@ class WordRepository(AbstractWordRepository):
             return None
         return mappers.map_word_with_details(orm_word)
 
-    def exists(self, phrase: str) -> bool:
-        """Check if word exists."""
-        return self.get_by_phrase(phrase) is not None
-
     def get_all(
         self,
         search: str | None = None,
@@ -60,7 +58,7 @@ class WordRepository(AbstractWordRepository):
         """Get all words with stats."""
         lang = None
         if target_lang:
-            lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
+            lang = self._get_language(target_lang)
             if not lang:
                 return []
 
@@ -106,7 +104,7 @@ class WordRepository(AbstractWordRepository):
         )
 
         if target_lang:
-            lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
+            lang = self._get_language(target_lang)
             if lang:
                 query = (
                     query.join(
@@ -134,11 +132,13 @@ class WordRepository(AbstractWordRepository):
         word = self.db.session.query(ORMWord).filter_by(phrase=phrase.lower()).first()
         if word:
             self.db.session.delete(word)
-            self.db.commit()
+            self.commit()
 
-    def add_translation(self, word_id: int, translation: str, target_lang: str = "ru") -> None:
+    def add_translation(
+        self, word_id: int, translation: str, target_lang: str = DEFAULT_TARGET_LANG
+    ) -> None:
         """Add translation for a word."""
-        lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
+        lang = self._get_language(target_lang)
         if not lang:
             return
 
@@ -154,11 +154,13 @@ class WordRepository(AbstractWordRepository):
             trans = ORMTranslation(word_id=word_id, translation=translation, language_id=lang.id)
             self.db.session.add(trans)
 
-        self.db.commit()
+        self.commit()
 
-    def get_translation(self, word_id: int, target_lang: str = "ru") -> Translation | None:
+    def get_translation(
+        self, word_id: int, target_lang: str = DEFAULT_TARGET_LANG
+    ) -> Translation | None:
         """Get translation for a word as domain entity."""
-        lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
+        lang = self._get_language(target_lang)
         if not lang:
             return None
         orm = (
@@ -175,18 +177,18 @@ class WordRepository(AbstractWordRepository):
         orm_word = self.db.session.query(ORMWord).filter_by(id=word_id).first()
         if orm_word:
             orm_word.phrase = phrase
-            self.db.commit()
+            self.commit()
 
     def delete_by_id(self, word_id: int) -> None:
         """Delete a word by ID."""
         orm_word = self.db.session.query(ORMWord).filter_by(id=word_id).first()
         if orm_word:
             self.db.session.delete(orm_word)
-            self.db.commit()
+            self.commit()
 
     def delete_translation(self, word_id: int, target_lang: str) -> None:
         """Delete translation for a specific language."""
-        lang = self.db.session.query(ORMLanguage).filter_by(code=target_lang).first()
+        lang = self._get_language(target_lang)
         if lang:
             orm = (
                 self.db.session.query(ORMTranslation)
@@ -195,4 +197,4 @@ class WordRepository(AbstractWordRepository):
             )
             if orm:
                 self.db.session.delete(orm)
-                self.db.commit()
+                self.commit()

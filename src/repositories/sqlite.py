@@ -46,6 +46,20 @@ class SQLiteDatabase(BaseDatabase):
         self._create_index("idx_word_stats_last_reviewed", "word_stats", "last_reviewed")
         self._connected = True
 
+    def _drop_column_with_indexes(self, conn, table: str, col: str) -> None:
+        """Drop indexes referencing col, then drop the column itself."""
+        idx_rows = conn.execute(
+            text(f"SELECT `name` FROM pragma_index_list('{table}') WHERE `origin`='c'")
+        ).fetchall()
+        for (idx_name,) in idx_rows:
+            refs = conn.execute(
+                text("SELECT COUNT(*) FROM pragma_index_info(:name) WHERE `name`=:col"),
+                {"name": idx_name, "col": col},
+            ).scalar()
+            if refs:
+                conn.execute(text(f'DROP INDEX IF EXISTS "{idx_name}"'))
+        conn.execute(text(f"ALTER TABLE {table} DROP COLUMN {col}"))
+
     def _drop_due_date_column(self) -> None:
         with self.engine.connect() as conn:
             due_date_exists = conn.execute(
@@ -54,19 +68,7 @@ class SQLiteDatabase(BaseDatabase):
             if not due_date_exists:
                 return
 
-            idx_rows = conn.execute(
-                text("SELECT `name` FROM pragma_index_list('word_stats') WHERE `origin`='c'")
-            ).fetchall()
-            for (idx_name,) in idx_rows:
-                refs_due = conn.execute(
-                    text(
-                        "SELECT COUNT(*) FROM pragma_index_info(:name) WHERE `name`='due_date'"
-                    ),
-                    {"name": idx_name},
-                ).scalar()
-                if refs_due:
-                    conn.execute(text(f"DROP INDEX IF EXISTS \"{idx_name}\""))
-            conn.execute(text("ALTER TABLE word_stats DROP COLUMN due_date"))
+            self._drop_column_with_indexes(conn, "word_stats", "due_date")
             conn.commit()
 
     def _drop_legacy_columns(self) -> None:
@@ -79,19 +81,7 @@ class SQLiteDatabase(BaseDatabase):
             }
             for col in ("interval_days", "ease_factor"):
                 if col in existing:
-                    idx_rows = conn.execute(
-                        text("SELECT `name` FROM pragma_index_list('word_stats') WHERE `origin`='c'")
-                    ).fetchall()
-                    for (idx_name,) in idx_rows:
-                        refs = conn.execute(
-                            text(
-                                "SELECT COUNT(*) FROM pragma_index_info(:name) WHERE `name`=:col"
-                            ),
-                            {"name": idx_name, "col": col},
-                        ).scalar()
-                        if refs:
-                            conn.execute(text(f"DROP INDEX IF EXISTS \"{idx_name}\""))
-                    conn.execute(text(f"ALTER TABLE word_stats DROP COLUMN {col}"))
+                    self._drop_column_with_indexes(conn, "word_stats", col)
             conn.commit()
 
     def commit(self) -> None:

@@ -6,26 +6,24 @@ from sqlalchemy import func
 
 from domain.entities import History, Stats, WordStats
 from domain.repositories import AbstractStatsRepository
+from domain.time_utils import today_start_ts, utc_now_ts
 from infrastructure import mappers
 from infrastructure.models import History as ORMHistory
 from infrastructure.models import Language as ORMLanguage
 from infrastructure.models import Translation as ORMTranslation
 from infrastructure.models import Word as ORMWord
 from infrastructure.models import WordStats as ORMWordStats
-from repositories.base import AbstractDatabase
+from repositories.base import AbstractRepository
 
 
-class StatsRepository(AbstractStatsRepository):
+class StatsRepository(AbstractStatsRepository, AbstractRepository):
     """Repository for word statistics."""
-
-    def __init__(self, db: AbstractDatabase):
-        self.db = db
 
     def update_word_stats(
         self, word_id: int
     ) -> None:
         """Update word stats (set last_reviewed to now)."""
-        now = int(datetime.now(timezone.utc).timestamp())
+        now = utc_now_ts()
         stats = self.db.session.query(ORMWordStats).filter_by(word_id=word_id).first()
 
         if stats:
@@ -37,7 +35,7 @@ class StatsRepository(AbstractStatsRepository):
             )
             self.db.session.add(stats)
 
-        self.db.commit()
+        self.commit()
 
     def get_word_stats(self, word_id: int) -> WordStats | None:
         """Get stats for a word."""
@@ -50,7 +48,7 @@ class StatsRepository(AbstractStatsRepository):
         """Record a review in history and return domain entity."""
         orm_history = ORMHistory(word_id=word_id)
         self.db.session.add(orm_history)
-        self.db.commit()
+        self.commit()
         return mappers.map_history(orm_history)
 
     def get_review_counts(self, word_ids: list[int]) -> dict[int, int]:
@@ -68,19 +66,19 @@ class StatsRepository(AbstractStatsRepository):
     def get_stats(self) -> Stats:
         """Get overall statistics."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        today_start = int(datetime(now.year, now.month, now.day).timestamp())
+        today_start = today_start_ts()
         today_date = now.date()
 
         db = self.db.session
 
-        # Combined: total words + today's new words
+        # Combined: total words + today's new words.
+        # Counts words directly so words without a translation are included.
         total_today = (
             db.query(
-                func.count(func.distinct(ORMTranslation.word_id)).label("total"),
-                func.count(func.distinct(ORMWord.id)).filter(ORMWord.created_at >= today_start).label("today_words"),
+                func.count(ORMWord.id).label("total"),
+                func.count(ORMWord.id).filter(ORMWord.created_at >= today_start).label("today_words"),
             )
             .select_from(ORMWord)
-            .join(ORMTranslation, ORMWord.id == ORMTranslation.word_id)
             .first()
         )
         total = total_today.total or 0

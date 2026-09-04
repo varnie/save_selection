@@ -6,34 +6,30 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from application.current_phrase import write_current_phrase
+from config import DEFAULT_SOURCE_LANG, DEFAULT_TARGET_LANG, SOURCE_LANG_KEY, TARGET_LANG_KEY
 from domain.exceptions import TranslationError
+from windows import BaseWindow, padded_box, show_message
 
 
-class AddWordDialog(Gtk.Window):
+class AddWordDialog(BaseWindow):
     """Add word dialog."""
 
     def __init__(self, vocab_service, on_add=None):
-        super().__init__(title="Add New Word")
+        super().__init__(title="Add New Word", width=400, height=250)
         self.vocab_service = vocab_service
         self.on_add = on_add
-        self.set_default_size(400, 250)
-        self.set_position(Gtk.WindowPosition.CENTER)
 
         self.build_ui()
 
     def build_ui(self) -> None:
         """Build the UI."""
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.set_margin_top(20)
-        box.set_margin_bottom(20)
-        box.set_margin_left(20)
-        box.set_margin_right(20)
+        box = padded_box()
         self.add(box)
 
         # Get source and target languages from settings
         settings = self.vocab_service.get_settings()
-        target_lang_code = settings.get("target_lang", "ru")
-        source_lang_code = settings.get("source_lang", "en")
+        target_lang_code = settings.get(TARGET_LANG_KEY, DEFAULT_TARGET_LANG)
+        source_lang_code = settings.get(SOURCE_LANG_KEY, DEFAULT_SOURCE_LANG)
 
         # Find language objects
         languages = self.vocab_service.get_languages()
@@ -87,37 +83,23 @@ class AddWordDialog(Gtk.Window):
 
     def on_add_clicked(self, widget: Gtk.Widget) -> None:
         """Add word with manual translation (no auto-translate)."""
-        word = self.word_entry.get_text().strip()
-        if not word:
-            self._show_error("Please enter a word or phrase")
-            return
-
         translation = self.translation_entry.get_text().strip() or None
-        try:
-            self.vocab_service.add_word(word, translation, auto_translate=False)
-        except ValueError as e:
-            self._show_error(str(e))
-            return
-
-        write_current_phrase(word)
-
-        if self.on_add:
-            self.on_add(word)
-        self.destroy()
+        self._submit(translation, auto_translate=False)
 
     def on_add_translate(self, widget: Gtk.Widget) -> None:
         """Add word and auto-translate."""
+        self._submit(None, auto_translate=True)
+
+    def _submit(self, translation: str | None, auto_translate: bool) -> None:
+        """Validate input, add the word, and close on success."""
         word = self.word_entry.get_text().strip()
         if not word:
             self._show_error("Please enter a word or phrase")
             return
 
         try:
-            self.vocab_service.add_word(word, None, auto_translate=True)
-        except ValueError as e:
-            self._show_error(str(e))
-            return
-        except TranslationError as e:
+            self.vocab_service.add_word(word, translation, auto_translate=auto_translate)
+        except (ValueError, TranslationError) as e:
             self._show_error(str(e))
             return
 
@@ -129,12 +111,4 @@ class AddWordDialog(Gtk.Window):
 
     def _show_error(self, message: str) -> None:
         """Show error dialog."""
-        dialog = Gtk.MessageDialog(
-            self,
-            Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.ERROR,
-            Gtk.ButtonsType.OK,
-            message,
-        )
-        dialog.run()
-        dialog.destroy()
+        show_message(self, Gtk.MessageType.ERROR, message)

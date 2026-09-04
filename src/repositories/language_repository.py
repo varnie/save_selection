@@ -4,14 +4,11 @@ from domain.entities import Language
 from domain.repositories import AbstractLanguageRepository
 from infrastructure import mappers
 from infrastructure.models import Language as ORMLanguage
-from repositories.base import AbstractDatabase
+from repositories.base import AbstractRepository
 
 
-class LanguageRepository(AbstractLanguageRepository):
+class LanguageRepository(AbstractLanguageRepository, AbstractRepository):
     """Repository for languages."""
-
-    def __init__(self, db: AbstractDatabase):
-        self.db = db
 
     def get_by_code(self, code: str) -> Language | None:
         """Get language by code."""
@@ -47,4 +44,4 @@ class LanguageRepository(AbstractLanguageRepository):
                 lang = ORMLanguage(code=code, name=name, abbreviation=abbrev)
                 self.db.session.add(lang)
 
-        self.db.commit()
+        self.commit()
