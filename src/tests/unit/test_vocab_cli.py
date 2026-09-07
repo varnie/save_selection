@@ -29,6 +29,7 @@ class TestRunCli:
                 result = run_cli()
                 assert result is False
                 mock_notify.assert_called_once_with("No text selected")
+                mock_create.return_value.close.assert_called_once()
 
     @patch("vocab_cli.create_vocab_service")
     @patch("vocab_cli.send_notification")

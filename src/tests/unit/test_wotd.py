@@ -1,9 +1,36 @@
 """Tests for wotd (Word of the Day) module."""
 
-from unittest.mock import mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from application.service_interfaces import CEFR_LEVELS
 from infrastructure.word_source import LocalWordSource
+
+
+class TestWOTDService:
+    """WOTD persistence order tests."""
+
+    def test_marks_wotd_only_after_saving_the_word(self):
+        from application.wotd_service import WOTDService
+
+        settings = MagicMock()
+        settings.get_setting.return_value = "true"
+        settings.get_wotd_level.return_value = "A1"
+        settings.get_translation_provider.return_value = "mymemory"
+        settings.get_source_lang.return_value = "en"
+        settings.get_target_lang.return_value = "ru"
+        repo = MagicMock()
+        repo.get_today.return_value = None
+        word_service = MagicMock()
+        word_service.add_word.side_effect = RuntimeError("database unavailable")
+        translator = MagicMock()
+        translator.translate.return_value = "привет"
+        source = MagicMock()
+        source.get_word.return_value = {"word": "hello", "level": "A1"}
+
+        service = WOTDService(settings, repo, word_service, translator, source)
+
+        assert service.get_word_of_the_day() is None
+        repo.mark_shown.assert_not_called()
 
 
 def _csv_content(rows: list[list[str]]) -> str:

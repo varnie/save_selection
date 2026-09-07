@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 ICON_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "translate.svg")
 
 
+def _escape_applescript_string(value: str) -> str:
+    """Escape untrusted text for use inside an AppleScript string literal."""
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", "\\r").replace("\n", "\\n")
+
+
 def send_notification(body: str, title: str = "Vocab") -> bool:
     """Send system notification.
 
@@ -46,7 +51,10 @@ def _send_macos_notification(body: str, title: str) -> bool:
     # Fallback to osascript
     osascript = shutil.which("osascript")
     if osascript:
-        script = f'display notification "{clean_body}" with title "{clean_title}"'
+        script = (
+            f'display notification "{_escape_applescript_string(clean_body)}" '
+            f'with title "{_escape_applescript_string(clean_title)}"'
+        )
         result = subprocess.run([osascript, "-e", script], check=False)  # ruff:ignore[subprocess-without-shell-equals-true]
         return result.returncode == 0
 

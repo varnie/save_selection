@@ -30,6 +30,7 @@ Thumbs.db
 *.log
 
 *.csv
+!src/data/ENGLISH_CERF_WORDS.csv
 
 # Test & coverage artifacts
 .coverage

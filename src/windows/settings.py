@@ -276,10 +276,6 @@ class SettingsWindow(BaseWindow):
         source_lang = self.src_lang_combo.get_active_id()
         target_lang = self.lang_combo.get_active_id()
 
-        self.vocab_service.set_setting(TRANSLATION_PROVIDER_KEY, provider)
-        self.vocab_service.set_setting(SOURCE_LANG_KEY, source_lang)
-        self.vocab_service.set_setting(TARGET_LANG_KEY, target_lang)
-
         provider_name = ProviderRegistry.get(provider).get_name()
         self.test_status_label.set_text(f"Testing {provider_name}...")
         self.test_spinner.show()
@@ -295,7 +291,7 @@ class SettingsWindow(BaseWindow):
         GLib.timeout_add_seconds(30, test_timeout)
 
         def run_test():
-            success = self.vocab_service.test_translation_api()
+            success = self.vocab_service.test_translation_api(source_lang, target_lang, provider)
             GLib.idle_add(self._test_complete, success, provider_name)
 
         import threading

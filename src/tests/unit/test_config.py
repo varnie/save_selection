@@ -4,6 +4,7 @@ import json
 from unittest.mock import mock_open, patch
 
 from config import DEFAULT_SETTINGS, read_config, write_config
+from domain.time_utils import today_start_ts
 
 
 class TestReadConfig:
@@ -105,3 +106,12 @@ class TestDefaultSettings:
         """Test that DEFAULT_SETTINGS has translation_provider."""
         assert "translation_provider" in DEFAULT_SETTINGS
         assert DEFAULT_SETTINGS["translation_provider"] == "mymemory"
+
+
+def test_today_start_ts_is_utc_midnight():
+    """The timestamp must not shift with the machine's local timezone."""
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    expected = int(datetime(now.year, now.month, now.day, tzinfo=timezone.utc).timestamp())
+    assert today_start_ts() == expected

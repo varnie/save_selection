@@ -57,10 +57,16 @@ class VocabService:
     def get_languages(self) -> list[Language]:
         return self.language_repo.get_all()
 
-    def test_translation_api(self) -> bool:
-        source_lang = self.settings_service.get_source_lang()
-        target_lang = self.settings_service.get_target_lang()
-        provider_name = self.settings_service.get_translation_provider()
+    def test_translation_api(
+        self,
+        source_lang: str | None = None,
+        target_lang: str | None = None,
+        provider_name: str | None = None,
+    ) -> bool:
+        """Test either supplied settings or the currently saved settings."""
+        source_lang = source_lang or self.settings_service.get_source_lang()
+        target_lang = target_lang or self.settings_service.get_target_lang()
+        provider_name = provider_name or self.settings_service.get_translation_provider()
         return self.translation_test_service.test_connection(
             source_lang, target_lang, provider_name
         )

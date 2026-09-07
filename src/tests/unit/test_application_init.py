@@ -42,6 +42,12 @@ class TestGetDbPath:
             result = get_db_path("/tmp/config.json")
             assert result == "/default/vocab.db"
 
+    @patch("application.read_config", return_value={"data_dir": ""})
+    def test_get_db_path_empty_custom_dir_uses_default(self, mock_read_config):
+        """An empty setting means the documented default directory."""
+        with patch("application.DEFAULT_DB_PATH", "/default/vocab.db"):
+            assert get_db_path("/tmp/config.json") == "/default/vocab.db"
+
 
 class TestCreateVocabService:
     """Tests for create_vocab_service function."""

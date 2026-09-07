@@ -61,6 +61,8 @@ class SQLiteDatabase(BaseDatabase):
         conn.execute(text(f"ALTER TABLE {table} DROP COLUMN {col}"))
 
     def _drop_due_date_column(self) -> None:
+        if not self._supports_drop_column():
+            return
         with self.engine.connect() as conn:
             due_date_exists = conn.execute(
                 text("SELECT COUNT(*) FROM pragma_table_info('word_stats') WHERE name='due_date'")
@@ -72,6 +74,8 @@ class SQLiteDatabase(BaseDatabase):
             conn.commit()
 
     def _drop_legacy_columns(self) -> None:
+        if not self._supports_drop_column():
+            return
         with self.engine.connect() as conn:
             existing = {
                 row[0]
@@ -83,6 +87,11 @@ class SQLiteDatabase(BaseDatabase):
                 if col in existing:
                     self._drop_column_with_indexes(conn, "word_stats", col)
             conn.commit()
+
+    def _supports_drop_column(self) -> bool:
+        """SQLite added ALTER TABLE DROP COLUMN in version 3.35.0."""
+        version = self.engine.dialect.server_version_info
+        return not isinstance(version, tuple) or version >= (3, 35, 0)
 
     def commit(self) -> None:
         """Commit transaction."""

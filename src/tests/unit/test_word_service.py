@@ -107,7 +107,7 @@ class TestWordManagementService:
         word_service.add_word("yesterday_word", translation="вчера")
 
         now = datetime.now(timezone.utc)
-        today_start = int(datetime(now.year, now.month, now.day).timestamp())
+        today_start = int(datetime(now.year, now.month, now.day, tzinfo=timezone.utc).timestamp())
         yesterday_start = today_start - 86400
 
         test_db.session.execute(

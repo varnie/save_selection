@@ -26,42 +26,44 @@ def run_cli():
     if not vocab_service:
         sys.exit(1)
 
-    if args.save:
-        try:
-            result = get_clipboard_text()
-            if not result:
-                send_notification("No text selected")
-                return False
-            phrase = result.strip().lower()
-            word = vocab_service.add_word(phrase, auto_translate=True)
+    try:
+        if args.save:
+            try:
+                result = get_clipboard_text()
+                if not result:
+                    send_notification("No text selected")
+                    return False
+                phrase = result.strip().lower()
+                word = vocab_service.add_word(phrase, auto_translate=True)
 
-            translation, trans_lang = vocab_service.get_translation_with_lang(word.id)
-            if translation:
-                abbrev = vocab_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
-                send_notification(f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]")
-            else:
-                send_notification(f"Word saved: {phrase[:30]}")
+                translation, trans_lang = vocab_service.get_translation_with_lang(word.id)
+                if translation:
+                    abbrev = vocab_service.get_language_abbreviation(trans_lang) if trans_lang else "—"
+                    send_notification(f"<b>{phrase[:20]}</b> → {translation} [{abbrev}]")
+                else:
+                    send_notification(f"Word saved: {phrase[:30]}")
 
-            write_current_phrase(phrase)
-        except ValueError as e:
-            send_notification(f"Invalid input: {e}")
-        except Exception as e:
-            send_notification(f"Error: {e}")
+                write_current_phrase(phrase)
+            except ValueError as e:
+                send_notification(f"Invalid input: {e}")
+            except Exception as e:
+                send_notification(f"Error: {e}")
 
-    if args.delete:
-        phrase = read_current_phrase()
-        if phrase:
-            vocab_service.delete_word(phrase)
-            send_notification(f"Word deleted: {phrase[:30]}")
-            clear_current_phrase()
+        if args.delete:
+            phrase = read_current_phrase()
+            if phrase:
+                vocab_service.delete_word(phrase)
+                send_notification(f"Word deleted: {phrase[:30]}")
+                clear_current_phrase()
 
-    if args.next:
-        body = vocab_service.get_next_word_notification()
-        if body:
-            send_notification(body)
+        if args.next:
+            body = vocab_service.get_next_word_notification()
+            if body:
+                send_notification(body)
 
-    vocab_service.close()
-    return True
+        return True
+    finally:
+        vocab_service.close()
 
 
 if __name__ == "__main__":

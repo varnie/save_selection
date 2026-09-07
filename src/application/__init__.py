@@ -39,7 +39,7 @@ def get_db_path(config_file: str = CONFIG_FILE) -> str:
     config = read_config(config_file)
     custom_data_dir = config.get(DATA_DIR_KEY)
 
-    if isinstance(custom_data_dir, str):
+    if isinstance(custom_data_dir, str) and custom_data_dir.strip():
         custom_db_path = os.path.join(os.path.expanduser(custom_data_dir), "vocab.db")
         dir_path = os.path.dirname(custom_db_path)
         if dir_path:
@@ -63,7 +63,9 @@ def create_vocab_service(
             logger.info("Please run the GUI app first to initialize the database.")
             return None
 
-        os.makedirs(os.path.dirname(final_db_path), exist_ok=True)
+        db_dir = os.path.dirname(final_db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
 
     db = SQLiteDatabase(final_db_path)
     db.connect()

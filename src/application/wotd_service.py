@@ -74,9 +74,12 @@ class WOTDService(AbstractWOTDService):
         if not translation:
             return None
 
-        self.wotd_repo.mark_shown(word, word_level)
+        word_entity, saved = self.save_wotd_to_vocab(word, translation)
+        if not saved or word_entity is None:
+            return None
 
-        word_entity, _ = self.save_wotd_to_vocab(word, translation)
+        # Only consume today's WOTD after it is safely available in vocabulary.
+        self.wotd_repo.mark_shown(word, word_level)
         return word_entity
 
     def save_wotd_to_vocab(

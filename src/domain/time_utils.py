@@ -16,7 +16,7 @@ def utc_now_ts() -> int:
 def today_start_ts() -> int:
     """Start of today as epoch seconds (same boundary as stored timestamps)."""
     now = datetime.now(timezone.utc)
-    return int(datetime(now.year, now.month, now.day).timestamp())
+    return int(datetime(now.year, now.month, now.day, tzinfo=timezone.utc).timestamp())
 
 
 def today_str() -> str:

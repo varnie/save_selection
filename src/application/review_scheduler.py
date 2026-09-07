@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 # after OS boot. Both satisfy the "at least 5 minutes after launch" requirement.
 REVIEW_INITIAL_DELAY_SECONDS = 300  # 5 min — first review
 WOTD_INITIAL_DELAY_SECONDS = 360  # 6 min — WOTD, 1 min after review
+WOTD_CHECK_INTERVAL_SECONDS = 3600  # Retry hourly; get_today prevents duplicate notifications.
 
 
 class ReviewScheduler:
@@ -132,6 +133,14 @@ class ReviewScheduler:
             logger.exception("WOTD error: %s", e)
         finally:
             self._cleanup_session()
+            # The app normally remains open for days.  Keep checking so a new
+            # UTC day (or an enabled setting) can produce a WOTD without a restart.
+            with self._state_lock:
+                should_reschedule = self.running
+            if should_reschedule:
+                self._wotd_timer = threading.Timer(WOTD_CHECK_INTERVAL_SECONDS, self._check_wotd)
+                self._wotd_timer.daemon = True
+                self._wotd_timer.start()
 
     def _review_loop(self) -> None:
         """Background review loop."""
