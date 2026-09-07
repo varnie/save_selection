@@ -7,7 +7,7 @@ import sys
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gio, Gtk
+from gi.repository import Gio, GLib, Gtk
 
 from application import create_vocab_service
 from application.review_scheduler import ReviewScheduler
@@ -86,7 +86,9 @@ class VocabApp(Gtk.Application):
             settings_service=self.vocab_service,
             word_service=self.vocab_service,
             notify_callback=self.notify,
-            label_callback=self.tray.set_label,
+            # ReviewScheduler invokes this callback from its worker thread.
+            # GTK/AppIndicator widgets must only be updated on GTK's main loop.
+            label_callback=lambda label: GLib.idle_add(self.tray.set_label, label),
             cleanup_callback=self.vocab_service.remove_session,
             notification_service=self.vocab_service.notification_service,
         )

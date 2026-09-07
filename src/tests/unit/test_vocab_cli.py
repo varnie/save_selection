@@ -1,11 +1,20 @@
 """Tests for vocab_cli module."""
 
 import argparse
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from application import current_phrase
 from vocab_cli import run_cli
+
+
+@pytest.fixture(autouse=True)
+def isolated_current_phrase_state(monkeypatch, tmp_path):
+    """Keep CLI tests independent of the real user's runtime state."""
+    state_dir = tmp_path / "state"
+    monkeypatch.setattr(current_phrase, "STATE_DIR", str(state_dir))
+    monkeypatch.setattr(current_phrase, "CURRENT_PHRASE_FILE", str(state_dir / "current_phrase.json"))
 
 
 class TestRunCli:
@@ -43,10 +52,9 @@ class TestRunCli:
 
         with patch("sys.argv", ["vocab_cli", "--save"]):
             with patch("vocab_cli.get_clipboard_text", return_value="Hello"):
-                with patch("builtins.open", create=True):
-                    result = run_cli()
-                    assert result is True
-                    mock_service.add_word.assert_called_once()
+                result = run_cli()
+                assert result is True
+                mock_service.add_word.assert_called_once()
 
     @patch("vocab_cli.create_vocab_service")
     @patch("vocab_cli.send_notification")
@@ -59,12 +67,11 @@ class TestRunCli:
 
         with patch("sys.argv", ["vocab_cli", "--save"]):
             with patch("vocab_cli.get_clipboard_text", return_value="Hello"):
-                with patch("builtins.open", create=True):
-                    result = run_cli()
-                    assert result is True
-                    mock_service.add_word.assert_called_once()
-                    # Should notify "Word saved: hello" (lowercase)
-                    mock_notify.assert_called_once_with("Word saved: hello")
+                result = run_cli()
+                assert result is True
+                mock_service.add_word.assert_called_once()
+                # Should notify "Word saved: hello" (lowercase)
+                mock_notify.assert_called_once_with("Word saved: hello")
 
     @patch("vocab_cli.create_vocab_service")
     @patch("vocab_cli.send_notification")
@@ -88,10 +95,9 @@ class TestRunCli:
         mock_create.return_value = mock_service
 
         with patch("sys.argv", ["vocab_cli", "--delete"]):
-            with patch("os.path.exists", return_value=False):
-                result = run_cli()
-                assert result is True
-                mock_service.delete_word.assert_not_called()
+            result = run_cli()
+            assert result is True
+            mock_service.delete_word.assert_not_called()
 
     @patch("vocab_cli.create_vocab_service")
     @patch("vocab_cli.send_notification")
@@ -99,18 +105,16 @@ class TestRunCli:
         """Test --delete with temp file."""
         mock_service = MagicMock()
         mock_create.return_value = mock_service
+        current_phrase.write_current_phrase("hello")
 
         with patch("sys.argv", ["vocab_cli", "--delete"]):
             with patch("argparse.ArgumentParser") as mock_parser_class:
                 mock_parser = MagicMock()
                 mock_parser.parse_args.return_value = argparse.Namespace(save=False, delete=True, next=False)
                 mock_parser_class.return_value = mock_parser
-                with patch("os.path.exists", return_value=True):
-                    with patch("builtins.open", mock_open(read_data="hello\n")):
-                        with patch("os.remove"):
-                            result = run_cli()
-                            assert result is True
-                            mock_service.delete_word.assert_called_once_with("hello")
+                result = run_cli()
+                assert result is True
+                mock_service.delete_word.assert_called_once_with("hello")
 
     @patch("vocab_cli.create_vocab_service")
     @patch("vocab_cli.send_notification")
