@@ -43,8 +43,8 @@ class TestWordManagementService:
         self, word_service, word_repo
     ):
         """If auto-translate fails, the word must NOT be added (no silent save)."""
+
         from domain.exceptions import TranslationError
-        from unittest.mock import MagicMock
 
         word_service.translation_service.translate.side_effect = TranslationError("boom")
 

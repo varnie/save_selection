@@ -90,4 +90,3 @@ class LinuxTray:
 
     def set_pause_label(self, label):
         self._pause_item.set_label(label)
-

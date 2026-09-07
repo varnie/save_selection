@@ -1,12 +1,16 @@
 """Settings window."""
 
 import os
+import shutil
+from dataclasses import dataclass
+from enum import Enum, auto
 
 import gi
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 
+from application import get_db_path
 from application.service_interfaces import CEFR_LEVELS
 from config import (
     DATA_DIR_KEY,
@@ -24,11 +28,37 @@ from config import (
     read_config,
     write_config,
 )
-from constants import DEFAULT_DATA_DIR, IS_MACOS
+from constants import DEFAULT_DATA_DIR, DEFAULT_DB_PATH, IS_MACOS
 from infrastructure.autostart import AutostartManager
 from infrastructure.translation import ProviderRegistry
 from version import get_version
 from windows import BaseWindow, padded_box, show_message
+
+
+class DataDirChoice(Enum):
+    """User decision on what to do with the existing vocabulary."""
+
+    MOVE = auto()
+    START_EMPTY = auto()
+    CANCEL = auto()
+
+
+class RelocationVerdict(Enum):
+    """Outcome of a database relocation attempt."""
+
+    NOTHING_TO_DO = auto()
+    MOVED = auto()
+    START_EMPTY = auto()
+    CANCELLED = auto()
+    FAILED = auto()
+
+
+@dataclass(frozen=True)
+class RelocationResult:
+    """Result of a database relocation: verdict plus error details on failure."""
+
+    verdict: RelocationVerdict
+    error: str = ""
 
 
 class SettingsWindow(BaseWindow):
@@ -320,6 +350,64 @@ class SettingsWindow(BaseWindow):
         self.test_status_label.set_text("")
         return False
 
+    def _ask_data_dir_choice(self) -> DataDirChoice:
+        """Ask how to handle the existing vocabulary on data-dir change."""
+        dialog = Gtk.MessageDialog(
+            self,
+            Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            Gtk.MessageType.QUESTION,
+            Gtk.ButtonsType.NONE,
+            "The data directory changed.\n"
+            "What should happen to your existing vocabulary?",
+        )
+        dialog.add_button("Move my words", Gtk.ResponseType.YES)
+        dialog.add_button("Start empty", Gtk.ResponseType.NO)
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        response = dialog.run()
+        dialog.destroy()
+        if response == Gtk.ResponseType.YES:
+            return DataDirChoice.MOVE
+        if response == Gtk.ResponseType.NO:
+            return DataDirChoice.START_EMPTY
+        return DataDirChoice.CANCEL
+
+    def _relocate_database(self, new_data_dir: str) -> RelocationResult:
+        """Move the active DB file to the new data dir, or confirm a fresh start."""
+        old_db_path = get_db_path(self.config_file) if self.config_file else DEFAULT_DB_PATH
+        new_db_path = (
+            os.path.join(os.path.expanduser(new_data_dir), "vocab.db")
+            if new_data_dir.strip()
+            else DEFAULT_DB_PATH
+        )
+        if os.path.abspath(old_db_path) == os.path.abspath(new_db_path):
+            return RelocationResult(RelocationVerdict.NOTHING_TO_DO)
+        if not os.path.exists(old_db_path):
+            # No existing vocabulary; a fresh DB is created on restart.
+            return RelocationResult(RelocationVerdict.NOTHING_TO_DO)
+
+        choice = self._ask_data_dir_choice()
+        if choice is DataDirChoice.CANCEL:
+            return RelocationResult(RelocationVerdict.CANCELLED)
+        if choice is DataDirChoice.START_EMPTY:
+            return RelocationResult(RelocationVerdict.START_EMPTY)
+        try:
+            target_dir = os.path.dirname(new_db_path)
+            if target_dir:
+                os.makedirs(target_dir, exist_ok=True)
+            if os.path.exists(new_db_path):
+                return RelocationResult(
+                    RelocationVerdict.FAILED,
+                    "A database already exists at the new location:\n"
+                    f"{new_db_path}\nMove cancelled — nothing was changed.",
+                )
+            shutil.move(old_db_path, new_db_path)
+            return RelocationResult(RelocationVerdict.MOVED)
+        except OSError as e:
+            return RelocationResult(
+                RelocationVerdict.FAILED,
+                f"Could not move the database:\n{old_db_path}\n→ {new_db_path}\n{e}",
+            )
+
     def on_save_settings(self, widget: Gtk.Widget) -> None:
         """Save settings."""
         settings = {
@@ -333,14 +421,32 @@ class SettingsWindow(BaseWindow):
 
         new_data_dir = self.data_dir_entry.get_text().strip()
 
+        db_relocated = False
+        fresh_library = False
         data_dir_changed = False
         if self.config_file:
             config = read_config(self.config_file)
             old_data_dir = config.get(DATA_DIR_KEY, "")
             if old_data_dir != new_data_dir:
                 data_dir_changed = True
+                result = self._relocate_database(new_data_dir)
+                if result.verdict is RelocationVerdict.CANCELLED:
+                    return
+                if result.verdict is RelocationVerdict.MOVED:
+                    db_relocated = True
+                elif result.verdict is RelocationVerdict.START_EMPTY:
+                    fresh_library = True
+                elif result.verdict is RelocationVerdict.FAILED:
+                    show_message(self, Gtk.MessageType.ERROR, result.error)
+                    return
             config[DATA_DIR_KEY] = new_data_dir
-            write_config(self.config_file, config)
+            if not write_config(self.config_file, config):
+                show_message(
+                    self,
+                    Gtk.MessageType.ERROR,
+                    "Failed to write the config file. Settings were not saved.",
+                )
+                return
 
         self.vocab_service.save_settings(settings)
 
@@ -351,10 +457,23 @@ class SettingsWindow(BaseWindow):
             AutostartManager.disable()
 
         # Show confirmation
-        if data_dir_changed:
+        if db_relocated:
             msg_text = (
                 "Settings saved!\n\n"
-                "Note: You need to restart the app for data directory changes to take effect."
+                "Your vocabulary was moved to the new location.\n"
+                "Restart the app to use it."
+            )
+        elif fresh_library:
+            msg_text = (
+                "Settings saved!\n\n"
+                "Note: you chose to start empty — after restart the app will use "
+                "a separate, empty library in the new location.\n"
+                "Your old vocabulary stays where it was."
+            )
+        elif data_dir_changed:
+            msg_text = (
+                "Settings saved!\n\n"
+                "Note: you need to restart the app for data directory changes to take effect."
             )
         else:
             msg_text = "Settings saved successfully!"

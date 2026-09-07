@@ -2,7 +2,10 @@
 """Config helpers."""
 
 import json
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 
 def read_config(config_file: str) -> dict:
@@ -12,7 +15,11 @@ def read_config(config_file: str) -> dict:
     try:
         with open(config_file) as f:
             return json.load(f)
-    except Exception:
+    except OSError as e:
+        logger.warning("Could not read config file %s: %s", config_file, e)
+        return {}
+    except ValueError as e:
+        logger.warning("Config file %s is not valid JSON: %s", config_file, e)
         return {}
 
 
@@ -25,7 +32,8 @@ def write_config(config_file: str, config: dict) -> bool:
         with open(config_file, "w") as f:
             json.dump(config, f)
         return True
-    except Exception:
+    except OSError as e:
+        logger.warning("Could not write config file %s: %s", config_file, e)
         return False
 
 

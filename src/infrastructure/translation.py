@@ -166,7 +166,7 @@ class TranslationServiceImpl(AbstractTranslationService):
     # Fallback order tried when the selected provider fails (429, blocked, etc.).
     # NOTE: "easygoogle" is intentionally excluded — its underlying library
     # touches a local error.txt file on failure and is unreliable.
-    FALLBACK_ORDER = ["google_deep", DEFAULT_TRANSLATION_PROVIDER]
+    FALLBACK_ORDER: ClassVar[tuple[str, ...]] = ("google_deep", DEFAULT_TRANSLATION_PROVIDER)
 
     def translate(
         self,
@@ -190,7 +190,7 @@ class TranslationServiceImpl(AbstractTranslationService):
                 result = provider.translate(text, target_lang, source_lang)
                 if result:
                     return result
-            except Exception as e:  # noqa: BLE001 - try next provider on any failure
+            except Exception as e:
                 logger.warning("Translation via '%s' failed: %s", name, e)
                 last_error = e
 

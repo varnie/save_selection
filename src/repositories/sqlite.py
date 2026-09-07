@@ -1,10 +1,33 @@
 """SQLite implementation of database abstraction."""
 
-from sqlalchemy import create_engine, text
+import re
+
+from sqlalchemy import create_engine, event, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 from infrastructure.models import Base
 from repositories.base import AbstractDatabase as BaseDatabase
+
+_VALID_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _checked_identifier(name: str) -> str:
+    """Return the identifier if safe to interpolate into SQL, else raise."""
+    if not _VALID_IDENTIFIER.match(name):
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
+
+
+@event.listens_for(Engine, "connect")
+def _enable_foreign_keys(dbapi_connection, _connection_record) -> None:
+    """Enforce declared FOREIGN KEY constraints (SQLite defaults to OFF).
+
+    Registered on the Engine class so every pooled connection is covered.
+    """
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 
 class SQLiteDatabase(BaseDatabase):
@@ -28,7 +51,9 @@ class SQLiteDatabase(BaseDatabase):
         return self.ScopedSession()
 
     def _create_index(self, name: str, table: str, *columns: str) -> None:
-        cols = ", ".join(columns)
+        name = _checked_identifier(name)
+        table = _checked_identifier(table)
+        cols = ", ".join(_checked_identifier(c) for c in columns)
         with self.engine.connect() as conn:
             conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({cols})"))
             conn.commit()
@@ -48,8 +73,10 @@ class SQLiteDatabase(BaseDatabase):
 
     def _drop_column_with_indexes(self, conn, table: str, col: str) -> None:
         """Drop indexes referencing col, then drop the column itself."""
+        table = _checked_identifier(table)
+        col = _checked_identifier(col)
         idx_rows = conn.execute(
-            text(f"SELECT `name` FROM pragma_index_list('{table}') WHERE `origin`='c'")
+            text(f"SELECT `name` FROM pragma_index_list('{table}') WHERE `origin`='c'")  # ruff: ignore[hardcoded-sql-expression] - allow-list validated; identifiers can't bind
         ).fetchall()
         for (idx_name,) in idx_rows:
             refs = conn.execute(
@@ -57,7 +84,9 @@ class SQLiteDatabase(BaseDatabase):
                 {"name": idx_name, "col": col},
             ).scalar()
             if refs:
-                conn.execute(text(f'DROP INDEX IF EXISTS "{idx_name}"'))
+                conn.execute(
+                    text(f'DROP INDEX IF EXISTS "{_checked_identifier(idx_name)}"')
+                )
         conn.execute(text(f"ALTER TABLE {table} DROP COLUMN {col}"))
 
     def _drop_due_date_column(self) -> None:

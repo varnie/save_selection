@@ -150,8 +150,8 @@ class ReviewScheduler:
         # REVIEW_INITIAL_DELAY_SECONDS before the first review popup.
         # Poll `running` so stop() can interrupt without being affected by
         # unrelated settings changes.
-        _start = time.monotonic()
-        while time.monotonic() - _start < REVIEW_INITIAL_DELAY_SECONDS:
+        deadline = time.monotonic() + REVIEW_INITIAL_DELAY_SECONDS
+        while time.monotonic() < deadline:
             with self._state_lock:
                 if not self.running:
                     self._cleanup_session()

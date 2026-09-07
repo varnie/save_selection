@@ -5,7 +5,6 @@ from sqlalchemy.orm import declarative_base, relationship
 
 from domain.time_utils import utc_now_ts as _utc_timestamp
 
-
 Base = declarative_base()
 
 
@@ -90,7 +89,9 @@ class WOTDHistory(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     word = Column(String, nullable=False)
     level = Column(String, nullable=False)
-    shown_date = Column(String, nullable=False)  # YYYY-MM-DD format
+    # One entry per day: UniqueConstraint makes concurrent mark_shown()
+    # calls idempotent instead of inserting duplicates.
+    shown_date = Column(String, nullable=False, unique=True)  # YYYY-MM-DD format
     created_at = Column(Integer, nullable=False, default=_utc_timestamp)
 
 

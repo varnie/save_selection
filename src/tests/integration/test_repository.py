@@ -1,5 +1,7 @@
 """Integration tests for repository."""
 
+from infrastructure.models import WOTDHistory as ORMWOTDHistory
+
 
 class TestWordRepositoryIntegration:
     """Integration tests for WordRepository."""
@@ -44,3 +46,26 @@ class TestWordRepositoryIntegration:
 
         assert record is not None
         assert record.last_reviewed is not None
+
+
+class TestWOTDRepositoryIntegration:
+    """Integration tests for WOTD history uniqueness."""
+
+    def test_double_mark_shown_same_day_is_idempotent(self, test_db):
+        """Concurrent mark_shown() calls must not duplicate today's row."""
+        from repositories.wotd_repository import WOTDRepository
+
+        repo = WOTDRepository(test_db)
+        repo.mark_shown("hello", "A1")
+        repo.mark_shown("hello", "A1")  # Must not raise.
+
+        today = repo.get_today()
+        assert today is not None
+        assert today.word == "hello"
+
+        rows = (
+            test_db.session.query(ORMWOTDHistory)
+            .filter_by(shown_date=today.shown_date)
+            .all()
+        )
+        assert len(rows) == 1

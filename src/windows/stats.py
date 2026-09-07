@@ -94,4 +94,3 @@ class StatsWindow(BaseWindow):
                 show_message(self, Gtk.MessageType.ERROR, f"Export failed: {e}")
 
         dialog.destroy()
-

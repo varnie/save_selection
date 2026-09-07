@@ -6,9 +6,9 @@ A lightweight vocabulary learning app with system tray and spaced repetition. Su
 
 - **System tray**: Runs in background with tray icon
 - **Save phrases**: Select text anywhere, press a hotkey, done
-- **Spaced repetition**: Words shown by least recently seen
+- **Spaced repetition**: Words with fewest reviews first, then least recently seen
 - **Auto-translation**: Automatic translation via multiple providers
-- **Multiple translation providers**: Google (direct), Google (deep-translator), EasyGoogle, MyMemory
+- **Multiple translation providers**: Google (direct), Google (deep-translator), MyMemory — with automatic fallback if one is blocked
 - **Stats dashboard**: See words learned, streak, reviews today
 - **Word Browser**: View, search, edit and delete all words
 - **Words Added Today**: Quick view of today's vocabulary
@@ -52,7 +52,6 @@ This will create a virtual environment and install all dependencies:
 - `requests` - HTTP library
 - `sqlalchemy` - Database ORM
 - `deep-translator` - Translation library
-- `easygoogletranslate` - Alternative translation
 - `pytest` - Testing framework
 - `pytest-mock` - Mock support
 - `pytest-cov` - Coverage reports
@@ -97,7 +96,7 @@ Configure via System Settings → Keyboard → Shortcuts → Services, or use to
 ### Settings
 
 - **Review interval**: How often the background loop checks for words (30min - 8hours)
-- **Translation provider**: Choose between Google Translate (direct), Google Translate (deep-translator), EasyGoogle Translate, or MyMemory (free)
+- **Translation provider**: Choose between Google Translate (direct), Google Translate (deep-translator), or MyMemory (free). If the selected provider fails, the app automatically falls back to the next working one.
 - **Target language**: Translation language (Russian, Spanish, French, German, Italian, Portuguese, Japanese, Chinese, Korean)
 - **Word of the Day**: Enable/disable daily word notifications with CEFR level selection (A1-C2)
 - **Autostart**: Automatically starts on system login
@@ -111,7 +110,7 @@ Configure via System Settings → Keyboard → Shortcuts → Services, or use to
 
 ## Spaced Repetition
 
-Words are shown in order of least recently seen — never-reviewed words first, then oldest `last_reviewed` timestamp. Reviewing a word simply records the timestamp and increments the review count.
+Words are shown fewest-reviews-first — never-reviewed words first, then oldest `last_reviewed` timestamp. Reviewing a word simply records the timestamp and increments the review count.
 
 ## Troubleshooting
 
@@ -139,7 +138,7 @@ Words are shown in order of least recently seen — never-reviewed words first, 
 ### General
 
 #### Words don't appear in review
-- The app shows all your words, ordered by least recently seen
+- The app shows all your words, fewest reviews first, then least recently seen
 - Make sure your target language matches the translations you want to review
 
 ## Architecture

@@ -74,3 +74,45 @@ class TestReviewService:
 
         result = review_service.get_next_word()
         assert result is not None
+
+    def test_equal_counts_broken_by_oldest_last_reviewed(self):
+        """Sort contract is (review_count, last_reviewed): ties go to oldest."""
+        from unittest.mock import MagicMock
+
+        from application.review_service import ReviewService
+        from domain.entities import Word
+
+        word_repo = MagicMock()
+        stats_repo = MagicMock()
+        settings_service = MagicMock()
+        settings_service.get_target_lang.return_value = "ru"
+        word_repo.get_for_review.return_value = [
+            Word(id=1, phrase="newer", last_reviewed=200),
+            Word(id=2, phrase="older", last_reviewed=100),
+        ]
+        stats_repo.get_review_counts.return_value = {1: 1, 2: 1}
+
+        service = ReviewService(word_repo, stats_repo, settings_service)
+
+        assert service.get_next_word().id == 2
+
+    def test_fewer_reviews_beats_older_timestamp(self):
+        """Review count is the primary key, last_reviewed only breaks ties."""
+        from unittest.mock import MagicMock
+
+        from application.review_service import ReviewService
+        from domain.entities import Word
+
+        word_repo = MagicMock()
+        stats_repo = MagicMock()
+        settings_service = MagicMock()
+        settings_service.get_target_lang.return_value = "ru"
+        word_repo.get_for_review.return_value = [
+            Word(id=1, phrase="old-often-reviewed", last_reviewed=100),
+            Word(id=2, phrase="new-once-reviewed", last_reviewed=200),
+        ]
+        stats_repo.get_review_counts.return_value = {1: 5, 2: 1}
+
+        service = ReviewService(word_repo, stats_repo, settings_service)
+
+        assert service.get_next_word().id == 2

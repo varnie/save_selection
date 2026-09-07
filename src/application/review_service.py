@@ -20,7 +20,7 @@ class ReviewService(AbstractReviewService):
         self.settings_service = settings_service
 
     def get_next_word(self) -> Word | None:
-        """Get next word for review - least recently seen first, then by review count."""
+        """Get next word for review - fewest reviews first, then least recently seen."""
         target_lang = self.settings_service.get_target_lang()
         words = self.word_repo.get_for_review(limit=50, target_lang=target_lang)
 

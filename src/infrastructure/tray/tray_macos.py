@@ -81,4 +81,3 @@ class MacOSTray:
 
     def set_pause_label(self, label):
         self._pause_item.setTitle_(label)
-

@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 def _provider_returning(value, raise_exc=None):
     """Build a provider instance whose translate returns value or raises."""
@@ -39,17 +41,12 @@ def test_all_providers_fail_raises():
 
     failing = _provider_returning(None, raise_exc=RuntimeError("blocked"))
 
-    with patch.object(
-        TranslationServiceImpl, "FALLBACK_ORDER", ["google_direct", "mymemory"]
-    ), patch(
-        "infrastructure.translation.ProviderRegistry.get", return_value=failing
+    with (
+        patch.object(TranslationServiceImpl, "FALLBACK_ORDER", ["google_direct", "mymemory"]),
+        patch("infrastructure.translation.ProviderRegistry.get", return_value=failing),
+        pytest.raises(TranslationError),
     ):
-        service = TranslationServiceImpl()
-        try:
-            service.translate("hello", provider_name="google_direct")
-            assert False, "expected exception"
-        except TranslationError:
-            pass
+        TranslationServiceImpl().translate("hello", provider_name="google_direct")
 
 
 def test_mymemory_is_default_provider():
