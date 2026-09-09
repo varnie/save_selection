@@ -21,6 +21,10 @@ class WordsTodayWindow(BaseWindow):
         vbox = padded_box(spacing=6, margin=10)
         self.add(vbox)
 
+        self.wotd_label = Gtk.Label("")
+        self.wotd_label.set_xalign(0)
+        vbox.pack_start(self.wotd_label, False, False, 0)
+
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.set_shadow_type(Gtk.ShadowType.IN)
@@ -50,3 +54,17 @@ class WordsTodayWindow(BaseWindow):
         words = self.vocab_service.get_words_added_today()
         for w in words:
             self.list_store.append([w.phrase, w.translation or ""])
+        self._refresh_wotd_banner()
+
+    def _refresh_wotd_banner(self) -> None:
+        """Show today's Word of the Day above the list, if already shown."""
+        today = self.vocab_service.get_today_display()
+        if today is None:
+            self.wotd_label.hide()
+            return
+        word, translation, level = today
+        text = f"⭐ Word of the Day [{level}]: {word}"
+        if translation:
+            text += f" → {translation}"
+        self.wotd_label.set_text(text)
+        self.wotd_label.show()

@@ -3,6 +3,8 @@
 from unittest.mock import MagicMock, mock_open, patch
 
 from application.service_interfaces import CEFR_LEVELS
+from application.wotd_service import WOTDService
+from domain.entities import Word, WOTDHistory
 from infrastructure.word_source import LocalWordSource
 
 
@@ -37,6 +39,42 @@ def _csv_content(rows: list[list[str]]) -> str:
     """Build CSV string from rows (header included)."""
     lines = [",".join(row) for row in rows]
     return "\n".join(lines) + "\n"
+
+
+class TestGetTodayDisplay:
+    """get_today_display() banner data tests."""
+
+    def _service(self, entry, candidates):
+        repo = MagicMock()
+        repo.get_today.return_value = entry
+        word_service = MagicMock()
+        word_service.get_words.return_value = candidates
+        return WOTDService(MagicMock(), repo, word_service, MagicMock(), MagicMock())
+
+    def test_none_when_not_shown_yet(self):
+        """No banner before today's word is shown."""
+        service = self._service(None, [])
+        assert service.get_today_display() is None
+
+    def test_returns_word_translation_level(self):
+        """Banner shows word, translation and level."""
+        entry = WOTDHistory(word="hello", level="A1", shown_date="2026-01-01")
+        candidates = [Word(id=1, phrase="hello", translation="привет")]
+        assert self._service(entry, candidates).get_today_display() == (
+            "hello",
+            "привет",
+            "A1",
+        )
+
+    def test_translation_none_when_missing(self):
+        """Banner still shows the word when translation is absent."""
+        entry = WOTDHistory(word="hello", level="B2", shown_date="2026-01-01")
+        candidates = [Word(id=1, phrase="hello", translation="")]
+        assert self._service(entry, candidates).get_today_display() == (
+            "hello",
+            None,
+            "B2",
+        )
 
 
 class TestCEFRLevels:

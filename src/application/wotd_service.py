@@ -82,6 +82,18 @@ class WOTDService(AbstractWOTDService):
         self.wotd_repo.mark_shown(word, word_level)
         return word_entity
 
+    def get_today_display(self) -> tuple[str, str | None, str] | None:
+        """Today's shown word as (word, translation-or-None, level), or None."""
+        entry = self.wotd_repo.get_today()
+        if entry is None:
+            return None
+        translation = None
+        for candidate in self.word_service.get_words(search=entry.word):
+            if candidate.phrase == entry.word:
+                translation = candidate.translation or None
+                break
+        return (entry.word, translation, entry.level)
+
     def save_wotd_to_vocab(
         self, word: str, translation: str | None = None
     ) -> tuple[Word | None, bool]:

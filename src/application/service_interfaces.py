@@ -242,3 +242,8 @@ class AbstractWOTDService(ABC):
     ) -> tuple[Word | None, bool]:
         """Save WOTD word to user's vocabulary."""
         pass
+
+    @abstractmethod
+    def get_today_display(self) -> tuple[str, str | None, str] | None:
+        """Today's shown word as (word, translation-or-None, level), or None."""
+        pass
